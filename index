@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý Sổ Tiết Kiệm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+  <div class="w-full max-w-4xl bg-white shadow-md rounded-lg p-6">
+    <h1 class="text-2xl font-bold text-center mb-6">Quản lý Sổ Tiết Kiệm</h1>
+
+    <!-- Form thêm sổ tiết kiệm -->
+    <div class="mb-6">
+      <h2 class="text-lg font-semibold mb-2">Thêm Sổ Tiết Kiệm</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input id="amount" type="number" placeholder="Số tiền (VND)" class="border p-2 rounded" required>
+        <input id="interestRate" type="number" step="0.1" placeholder="Lãi suất (%/năm)" class="border p-2 rounded" required>
+        <input id="startDate" type="date" class="border p-2 rounded" required>
+      </div>
+      <button onclick="addSavings()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Thêm</button>
+    </div>
+
+    <!-- Tiền lãi chạy mỗi giây -->
+    <div class="mb-6">
+      <h2 class="text-lg font-semibold">Tiền Lãi Đang Chạy</h2>
+      <p class="text-xl">Tổng lãi: <span id="runningInterest" class="font-bold">0</span> VND</p>
+    </div>
+
+    <!-- Nút tải file mẫu và nhập/xuất CSV -->
+    <div class="mb-6 flex space-x-4">
+      <button onclick="downloadSampleCSV()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Tải File Mẫu CSV</button>
+      <label class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 cursor-pointer">
+        Nhập từ CSV
+        <input type="file" id="importCSV" accept=".csv" class="hidden" onchange="importFromCSV(event)">
+      </label>
+      <button onclick="exportToCSV()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Xuất ra CSV</button>
+    </div>
+
+    <!-- Danh sách sổ tiết kiệm -->
+    <div>
+      <h2 class="text-lg font-semibold mb-2">Danh Sách Sổ Tiết Kiệm</h2>
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border p-2">Số Tiền (VND)</th>
+            <th class="border p-2">Lãi Suất (%/năm)</th>
+            <th class="border p-2">Ngày Bắt Đầu</th>
+            <th class="border p-2">Tiền Lãi Hôm Nay</th>
+          </tr>
+        </thead>
+        <tbody id="savingsTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let savings = JSON.parse(localStorage.getItem('savings')) || [];
+
+    // Lưu dữ liệu vào LocalStorage
+    function saveToLocalStorage() {
+      localStorage.setItem('savings', JSON.stringify(savings));
+    }
+
+    // Thêm sổ tiết kiệm
+    function addSavings() {
+      const amount = parseFloat(document.getElementById('amount').value);
+      const interestRate = parseFloat(document.getElementById('interestRate').value);
+      const startDate = document.getElementById('startDate').value;
+
+      if (!amount || !interestRate || !startDate) {
+        alert('Vui lòng nhập đầy đủ thông tin!');
+        return;
+      }
+
+      savings.push({ amount, interestRate, startDate });
+      saveToLocalStorage();
+      renderTable();
+      updateRunningInterest();
+      clearForm();
+    }
+
+    // Xóa form sau khi thêm
+    function clearForm() {
+      document.getElementById('amount').value = '';
+      document.getElementById('interestRate').value = '';
+      document.getElementById('startDate').value = '';
+    }
+
+    // Tính tiền lãi mỗi ngày
+    function calculateDailyInterest(amount, interestRate) {
+      const dailyRate = interestRate / 100 / 365;
+      return amount * dailyRate;
+    }
+
+    // Cập nhật giao diện bảng
+    function renderTable() {
+      const tableBody = document.getElementById('savingsTable');
+      tableBody.innerHTML = '';
+      savings.forEach(saving => {
+        const dailyInterest = calculateDailyInterest(saving.amount, saving.interestRate).toFixed(2);
+        const row = `
+          <tr>
+            <td class="border p-2">${saving.amount.toLocaleString()}</td>
+            <td class="border p-2">${saving.interestRate}</td>
+            <td class="border p-2">${saving.startDate}</td>
+            <td class="border p-2">${dailyInterest}</td>
+          </tr>`;
+        tableBody.innerHTML += row;
+      });
+    }
+
+    // Tiền lãi chạy mỗi giây
+    function updateRunningInterest() {
+      const totalDailyInterest = savings.reduce((sum, saving) => {
+        return sum + calculateDailyInterest(saving.amount, saving.interestRate);
+      }, 0);
+      const interestPerSecond = totalDailyInterest / (24 * 60 * 60);
+      let accumulatedInterest = 0;
+
+      setInterval(() => {
+        accumulatedInterest += interestPerSecond;
+        document.getElementById('runningInterest').textContent = accumulatedInterest.toFixed(2);
+      }, 1000);
+    }
+
+    // Tải file mẫu CSV
+    function downloadSampleCSV() {
+      const sampleData = [
+        ['amount', 'interestRate', 'startDate'],
+        [10000000, 5.5, '2025-01-01']
+      ];
+      const csvContent = sampleData.map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'sample_savings.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Nhập dữ liệu từ CSV
+    function importFromCSV(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const rows = text.split('\n').map(row => row.split(','));
+        savings = [];
+        for (let i = 1; i < rows.length; i++) {
+          const [amount, interestRate, startDate] = rows[i];
+          if (amount && interestRate && startDate) {
+            savings.push({
+              amount: parseFloat(amount),
+              interestRate: parseFloat(interestRate),
+              startDate: startDate.trim()
+            });
+          }
+        }
+        saveToLocalStorage();
+        renderTable();
+        updateRunningInterest();
+      };
+      reader.readAsText(file);
+    }
+
+    // Xuất dữ liệu ra CSV
+    function exportToCSV() {
+      const csvContent = [
+        ['amount', 'interestRate', 'startDate'],
+        ...savings.map(s => [s.amount, s.interestRate, s.startDate])
+      ].map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'savings_export.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Khởi tạo giao diện
+    renderTable();
+    updateRunningInterest();
+  </script>
+</body>
+</html>
