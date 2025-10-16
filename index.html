@@ -1,268 +1,207 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản lý Sổ Tiết Kiệm</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💰 Quản lý Sổ Tiết Kiệm</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
-  <div class="w-full max-w-6xl bg-white shadow-md rounded-lg p-6">
-    <h1 class="text-2xl font-bold text-center mb-6">💰 Quản lý Sổ Tiết Kiệm</h1>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+  <h1 class="text-3xl font-bold mb-4">💰 Quản lý Sổ Tiết Kiệm</h1>
 
-    <!-- Nút mở pop-up -->
-    <div class="mb-6">
-      <button onclick="openPopup()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Tạo Sổ Mới</button>
-    </div>
+  <div class="flex gap-2 mb-4">
+    <button id="addBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">+ Thêm sổ</button>
+    <button id="deleteSelectedBtn" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 hidden">🗑️ Xóa sổ đã chọn</button>
+    <button id="exportBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">⬇️ Xuất CSV</button>
+    <label class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 cursor-pointer">
+      📥 Nhập CSV
+      <input type="file" id="importFile" class="hidden" accept=".csv" />
+    </label>
+  </div>
 
-    <!-- Pop-up thêm/sửa sổ -->
-    <div id="popup" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 id="popupTitle" class="text-lg font-semibold mb-4">Thêm Sổ Tiết Kiệm</h2>
-        <div class="grid grid-cols-1 gap-4">
-          <input id="accountName" type="text" placeholder="Tên tài khoản" class="border p-2 rounded" required>
-          <input id="amount" type="number" placeholder="Số tiền gửi (VND)" class="border p-2 rounded" required>
-          <input id="bank" type="text" placeholder="Ngân hàng" class="border p-2 rounded" required>
-          <input id="startDate" type="date" class="border p-2 rounded" required>
-          <select id="term" class="border p-2 rounded" required>
-            <option value="" disabled selected>Chọn kỳ hạn (tháng)</option>
-            <option value="1">1 tháng</option>
-            <option value="3">3 tháng</option>
-            <option value="6">6 tháng</option>
-            <option value="12">12 tháng</option>
-          </select>
-          <input id="interestRate" type="number" step="0.1" placeholder="Lãi suất (%/năm)" class="border p-2 rounded" required>
-          <select id="interestType" class="border p-2 rounded" required>
-            <option value="" disabled selected>Hình thức trả lãi</option>
-            <option value="start">Đầu kỳ</option>
-            <option value="end">Cuối kỳ</option>
-          </select>
-          <select id="renewalType" class="border p-2 rounded" required>
-            <option value="" disabled selected>Khi đến hạn</option>
-            <option value="principal">Tái tục gốc</option>
-            <option value="principalAndInterest">Tái tục gốc và lãi</option>
-          </select>
-        </div>
-        <div class="mt-4 flex justify-end space-x-2">
-          <button id="saveButton" onclick="saveSavings()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Lưu</button>
-          <button onclick="closePopup()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Hủy</button>
-        </div>
-      </div>
-    </div>
+  <div class="mb-6 text-xl font-semibold">
+    Tổng lãi đang chạy: <span id="totalInterest" class="text-green-600">0</span> ₫
+  </div>
 
-    <!-- Tổng lãi đang chạy -->
-    <div class="mb-6">
-      <h2 class="text-lg font-semibold">💸 Tiền Lãi Đang Chạy</h2>
-      <p class="text-xl">Tổng lãi: <span id="runningInterest" class="font-bold">0</span> VND</p>
-    </div>
+  <table class="min-w-full bg-white shadow-lg rounded-lg overflow-hidden">
+    <thead class="bg-blue-100">
+      <tr>
+        <th class="p-2"><input type="checkbox" id="selectAll"></th>
+        <th class="p-2">Tên TK</th>
+        <th class="p-2">Ngân hàng</th>
+        <th class="p-2">Số tiền</th>
+        <th class="p-2">Kỳ hạn (tháng)</th>
+        <th class="p-2">Lãi suất (%)</th>
+        <th class="p-2">Ngày gửi</th>
+        <th class="p-2">Ngày đáo hạn</th>
+        <th class="p-2">Tổng lãi kỳ hạn</th>
+        <th class="p-2">Tổng tiền đáo hạn</th>
+      </tr>
+    </thead>
+    <tbody id="savingTable"></tbody>
+  </table>
 
-    <!-- Nút xuất nhập CSV -->
-    <div class="mb-6 flex space-x-4">
-      <button onclick="downloadSampleCSV()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Tải File Mẫu CSV</button>
-      <label class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 cursor-pointer">
-        Nhập từ CSV
-        <input type="file" id="importCSV" accept=".csv" class="hidden" onchange="importFromCSV(event)">
-      </label>
-      <button onclick="exportToCSV()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Xuất ra CSV</button>
-    </div>
+  <canvas id="bankChart" width="400" height="200" class="mt-8"></canvas>
 
-    <!-- Danh sách -->
-    <div>
-      <h2 class="text-lg font-semibold mb-2">📘 Danh Sách Sổ Tiết Kiệm</h2>
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-sm">
-          <thead>
-            <tr class="bg-gray-200">
-              <th class="border p-2">Tên TK</th>
-              <th class="border p-2">Số Tiền</th>
-              <th class="border p-2">Ngân Hàng</th>
-              <th class="border p-2">Ngày Gửi</th>
-              <th class="border p-2">Ngày Đáo Hạn</th>
-              <th class="border p-2">Kỳ Hạn</th>
-              <th class="border p-2">Lãi Suất</th>
-              <th class="border p-2">Lãi Suất Dự Kiến</th>
-              <th class="border p-2">Tổng Gốc + Lãi</th>
-              <th class="border p-2">Hình Thức Lãi</th>
-              <th class="border p-2">Khi Đến Hạn</th>
-              <th class="border p-2">Hành Động</th>
-            </tr>
-          </thead>
-          <tbody id="savingsTable"></tbody>
-        </table>
-      </div>
+  <!-- Modal thêm sổ -->
+  <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+      <h2 class="text-xl font-bold mb-4">Thêm Sổ Mới</h2>
+      <form id="addForm" class="space-y-2">
+        <input required type="text" id="accountName" placeholder="Tên tài khoản" class="w-full border p-2 rounded">
+        <input required type="text" id="bank" placeholder="Ngân hàng" class="w-full border p-2 rounded">
+        <input required type="number" id="amount" placeholder="Số tiền (₫)" class="w-full border p-2 rounded">
+        <input required type="number" id="term" placeholder="Kỳ hạn (tháng)" class="w-full border p-2 rounded">
+        <input required type="number" id="interestRate" placeholder="Lãi suất %" class="w-full border p-2 rounded">
+        <input required type="date" id="startDate" class="w-full border p-2 rounded">
+        <button type="submit" class="bg-blue-500 text-white w-full py-2 rounded-lg hover:bg-blue-600">Lưu</button>
+      </form>
     </div>
   </div>
 
   <script>
-    let savings = JSON.parse(localStorage.getItem('savings')) || [];
-    let accumulatedInterest = parseFloat(localStorage.getItem('accumulatedInterest')) || 0;
-    let editingIndex = null;
+    const addBtn = document.getElementById("addBtn");
+    const modal = document.getElementById("modal");
+    const addForm = document.getElementById("addForm");
+    const savingTable = document.getElementById("savingTable");
+    const totalInterestEl = document.getElementById("totalInterest");
+    const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+    const selectAll = document.getElementById("selectAll");
 
-    function saveToLocalStorage() {
-      localStorage.setItem('savings', JSON.stringify(savings));
-      localStorage.setItem('accumulatedInterest', accumulatedInterest);
-    }
+    let savings = JSON.parse(localStorage.getItem("savings")) || [];
+    let totalInterestValue = parseFloat(localStorage.getItem("totalInterestValue")) || 0;
+    let lastUpdate = parseFloat(localStorage.getItem("lastUpdate")) || Date.now();
 
-    function openPopup(index = null) {
-      editingIndex = index;
-      document.getElementById('popup').classList.remove('hidden');
-      if (index !== null) {
-        document.getElementById('popupTitle').textContent = 'Chỉnh sửa Sổ Tiết Kiệm';
-        const s = savings[index];
-        document.getElementById('accountName').value = s.accountName;
-        document.getElementById('amount').value = s.amount;
-        document.getElementById('bank').value = s.bank;
-        document.getElementById('startDate').value = s.startDate;
-        document.getElementById('term').value = s.term;
-        document.getElementById('interestRate').value = s.interestRate;
-        document.getElementById('interestType').value = s.interestType;
-        document.getElementById('renewalType').value = s.renewalType;
-      } else {
-        document.getElementById('popupTitle').textContent = 'Thêm Sổ Tiết Kiệm';
-        clearForm();
-      }
-    }
+    const interestPerMs = savings.reduce((sum, s) => sum + s.amount * (s.interestRate / 100) / 365 / 24 / 3600 / 1000, 0);
+    totalInterestValue += (Date.now() - lastUpdate) * interestPerMs;
+    localStorage.setItem("totalInterestValue", totalInterestValue);
+    localStorage.setItem("lastUpdate", Date.now());
 
-    function closePopup() {
-      document.getElementById('popup').classList.add('hidden');
-      clearForm();
-      editingIndex = null;
-    }
+    const updateTotalInterest = () => {
+      totalInterestValue += interestPerMs * 1000;
+      localStorage.setItem("totalInterestValue", totalInterestValue);
+      localStorage.setItem("lastUpdate", Date.now());
+      totalInterestEl.textContent = totalInterestValue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    };
 
-    function clearForm() {
-      ['accountName','amount','bank','startDate','term','interestRate','interestType','renewalType'].forEach(id => document.getElementById(id).value = '');
-    }
+    setInterval(updateTotalInterest, 1000);
 
-    function saveSavings() {
-      const data = {
+    const renderTable = () => {
+      savingTable.innerHTML = "";
+      savings.forEach((s, i) => {
+        const start = new Date(s.startDate);
+        const maturity = new Date(start);
+        maturity.setMonth(start.getMonth() + parseInt(s.term));
+        const interest = s.amount * s.interestRate / 100 * (s.term / 12);
+        const total = s.amount + interest;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="text-center"><input type="checkbox" class="selectItem" data-index="${i}"></td>
+          <td class="p-2">${s.accountName}</td>
+          <td class="p-2">${s.bank}</td>
+          <td class="p-2">${s.amount.toLocaleString()}</td>
+          <td class="p-2">${s.term}</td>
+          <td class="p-2">${s.interestRate}</td>
+          <td class="p-2">${s.startDate}</td>
+          <td class="p-2">${maturity.toISOString().split('T')[0]}</td>
+          <td class="p-2 text-green-600">${interest.toLocaleString()}</td>
+          <td class="p-2 text-blue-600">${total.toLocaleString()}</td>
+        `;
+        savingTable.appendChild(tr);
+      });
+
+      document.querySelectorAll(".selectItem").forEach(cb => {
+        cb.addEventListener("change", () => {
+          const anySelected = document.querySelectorAll(".selectItem:checked").length > 0;
+          deleteSelectedBtn.classList.toggle("hidden", !anySelected);
+        });
+      });
+
+      updateChart();
+    };
+
+    selectAll.addEventListener("change", () => {
+      document.querySelectorAll(".selectItem").forEach(cb => cb.checked = selectAll.checked);
+      deleteSelectedBtn.classList.toggle("hidden", !selectAll.checked);
+    });
+
+    deleteSelectedBtn.addEventListener("click", () => {
+      const selected = [...document.querySelectorAll(".selectItem:checked")].map(cb => parseInt(cb.dataset.index));
+      savings = savings.filter((_, i) => !selected.includes(i));
+      localStorage.setItem("savings", JSON.stringify(savings));
+      renderTable();
+      deleteSelectedBtn.classList.add("hidden");
+      selectAll.checked = false;
+    });
+
+    addBtn.onclick = () => modal.classList.remove("hidden");
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.add("hidden"); };
+
+    addForm.onsubmit = (e) => {
+      e.preventDefault();
+      const newSaving = {
         accountName: accountName.value,
-        amount: parseFloat(amount.value),
         bank: bank.value,
-        startDate: startDate.value,
+        amount: parseFloat(amount.value),
         term: parseInt(term.value),
         interestRate: parseFloat(interestRate.value),
-        interestType: interestType.value,
-        renewalType: renewalType.value
+        startDate: startDate.value
       };
-      if (Object.values(data).some(v => !v)) return alert('Nhập đầy đủ thông tin!');
-      if (editingIndex !== null) savings[editingIndex] = data; else savings.push(data);
-      saveToLocalStorage();
+      savings.push(newSaving);
+      localStorage.setItem("savings", JSON.stringify(savings));
+      modal.classList.add("hidden");
+      addForm.reset();
       renderTable();
-      updateRunningInterest();
-      closePopup();
-    }
+    };
 
-    function deleteSavings(index) {
-      if (confirm('Xóa sổ tiết kiệm này?')) {
-        savings.splice(index, 1);
-        saveToLocalStorage();
-        renderTable();
-        updateRunningInterest();
-      }
-    }
-
-    function calculateMaturityDate(startDate, term) {
-      const date = new Date(startDate);
-      date.setMonth(date.getMonth() + term);
-      return date.toISOString().split('T')[0];
-    }
-
-    function calculateInterest(amount, rate, months) {
-      return amount * (rate / 100) * (months / 12);
-    }
-
-    function renderTable() {
-      const tbody = document.getElementById('savingsTable');
-      tbody.innerHTML = '';
-      savings.forEach((s, i) => {
-        const maturity = calculateMaturityDate(s.startDate, s.term);
-        const interest = calculateInterest(s.amount, s.interestRate, s.term);
-        const total = s.amount + interest;
-        tbody.innerHTML += `
-          <tr>
-            <td class="border p-2">${s.accountName}</td>
-            <td class="border p-2">${s.amount.toLocaleString()}</td>
-            <td class="border p-2">${s.bank}</td>
-            <td class="border p-2">${s.startDate}</td>
-            <td class="border p-2">${maturity}</td>
-            <td class="border p-2">${s.term}</td>
-            <td class="border p-2">${s.interestRate}%</td>
-            <td class="border p-2">${interest.toLocaleString()}</td>
-            <td class="border p-2 font-semibold">${total.toLocaleString()}</td>
-            <td class="border p-2">${s.interestType === 'start' ? 'Đầu kỳ' : 'Cuối kỳ'}</td>
-            <td class="border p-2">${s.renewalType === 'principal' ? 'Tái tục gốc' : 'Tái tục gốc và lãi'}</td>
-            <td class="border p-2 space-x-2">
-              <button onclick="openPopup(${i})" class="bg-yellow-400 text-white px-2 py-1 rounded">Sửa</button>
-              <button onclick="deleteSavings(${i})" class="bg-red-500 text-white px-2 py-1 rounded">Xóa</button>
-            </td>
-          </tr>`;
-      });
-    }
-
-    function calculateDailyInterest(amount, rate) {
-      return amount * (rate / 100 / 365);
-    }
-
-    function updateRunningInterest() {
-      const totalDaily = savings.reduce((sum, s) => sum + calculateDailyInterest(s.amount, s.interestRate), 0);
-      const perSecond = totalDaily / (24 * 3600);
-      clearInterval(window.interestInterval);
-      window.interestInterval = setInterval(() => {
-        accumulatedInterest += perSecond;
-        document.getElementById('runningInterest').textContent = accumulatedInterest.toFixed(2);
-        saveToLocalStorage();
-      }, 1000);
-    }
-
-    // CSV Import/Export
-    function downloadSampleCSV() {
-      const rows = [
-        ['accountName','amount','bank','startDate','term','interestRate','interestType','renewalType'],
-        ['Nguyen Van A',10000000,'Vietcombank','2025-01-01',6,5.5,'end','principal']
-      ];
-      const csv = rows.map(r => r.join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const a = document.createElement('a');
+    // Xuất CSV
+    document.getElementById("exportBtn").onclick = () => {
+      const csv = ["Tên TK,Ngân hàng,Số tiền,Kỳ hạn,Lãi suất,Ngày gửi"];
+      savings.forEach(s => csv.push(`${s.accountName},${s.bank},${s.amount},${s.term},${s.interestRate},${s.startDate}`));
+      const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+      const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = 'sample_savings.csv';
+      a.download = "so_tiet_kiem.csv";
       a.click();
-    }
+    };
 
-    function importFromCSV(e) {
+    // Nhập CSV
+    document.getElementById("importFile").onchange = (e) => {
       const file = e.target.files[0];
+      if (!file) return;
       const reader = new FileReader();
-      reader.onload = evt => {
-        const lines = evt.target.result.split('\n').map(l => l.split(','));
-        savings = [];
-        for (let i = 1; i < lines.length; i++) {
-          const [accountName, amount, bank, startDate, term, interestRate, interestType, renewalType] = lines[i];
-          if (accountName && amount) savings.push({
-            accountName, amount: parseFloat(amount), bank, startDate,
-            term: parseInt(term), interestRate: parseFloat(interestRate),
-            interestType, renewalType
-          });
-        }
-        saveToLocalStorage();
+      reader.onload = (evt) => {
+        const lines = evt.target.result.split("\n").slice(1);
+        lines.forEach(line => {
+          const [accountName, bank, amount, term, interestRate, startDate] = line.split(",");
+          if (accountName) savings.push({ accountName, bank, amount: +amount, term: +term, interestRate: +interestRate, startDate });
+        });
+        localStorage.setItem("savings", JSON.stringify(savings));
         renderTable();
-        updateRunningInterest();
       };
       reader.readAsText(file);
-    }
+    };
 
-    function exportToCSV() {
-      const rows = [['accountName','amount','bank','startDate','term','interestRate','interestType','renewalType'],
-        ...savings.map(s => [s.accountName, s.amount, s.bank, s.startDate, s.term, s.interestRate, s.interestType, s.renewalType])
-      ];
-      const csv = rows.map(r => r.join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'savings_export.csv';
-      a.click();
-    }
+    // Biểu đồ tổng tiền gửi theo ngân hàng
+    let chart;
+    const updateChart = () => {
+      const totals = {};
+      savings.forEach(s => totals[s.bank] = (totals[s.bank] || 0) + s.amount);
+      const ctx = document.getElementById("bankChart").getContext("2d");
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: Object.keys(totals),
+          datasets: [{ label: "Tổng tiền gửi (₫)", data: Object.values(totals) }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+    };
 
     renderTable();
-    updateRunningInterest();
   </script>
 </body>
 </html>
