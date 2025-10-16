@@ -1,149 +1,207 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Quản lý sổ tiết kiệm</title>
-  <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; margin: 0; padding: 20px; color: #333; }
-    h1 { text-align: center; color: #2c3e50; }
-    .summary { display: flex; justify-content: space-around; margin: 20px 0; font-size: 18px; font-weight: bold; }
-    .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
-    input, button { padding: 8px; margin: 5px; border-radius: 6px; border: 1px solid #ccc; }
-    button { background: #3498db; color: white; border: none; cursor: pointer; }
-    button:hover { background: #2980b9; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { padding: 8px; text-align: center; border-bottom: 1px solid #eee; }
-    th { background: #f0f0f0; }
-    .running { color: #27ae60; font-weight: bold; }
-    .checkbox-col { width: 40px; }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💰 Quản lý Sổ Tiết Kiệm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-  <h1>💰 Quản lý sổ tiết kiệm</h1>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+  <h1 class="text-3xl font-bold mb-4">💰 Quản lý Sổ Tiết Kiệm</h1>
 
-  <div class="container">
-    <div>
-      <input id="bank" placeholder="Tên ngân hàng">
-      <input id="amount" type="number" placeholder="Số tiền gửi (VNĐ)">
-      <input id="rate" type="number" step="0.01" placeholder="Lãi suất (%/năm)">
-      <input id="days" type="number" placeholder="Số ngày gửi">
-      <button onclick="addSaving()">Thêm sổ</button>
-      <button onclick="deleteSelected()">Xóa đã chọn</button>
+  <div class="flex gap-2 mb-4">
+    <button id="addBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">+ Thêm sổ</button>
+    <button id="deleteSelectedBtn" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 hidden">🗑️ Xóa sổ đã chọn</button>
+    <button id="exportBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">⬇️ Xuất CSV</button>
+    <label class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 cursor-pointer">
+      📥 Nhập CSV
+      <input type="file" id="importFile" class="hidden" accept=".csv" />
+    </label>
+  </div>
+
+  <div class="mb-6 text-xl font-semibold">
+    Tổng lãi đang chạy: <span id="totalInterest" class="text-green-600">0</span> ₫
+  </div>
+
+  <table class="min-w-full bg-white shadow-lg rounded-lg overflow-hidden">
+    <thead class="bg-blue-100">
+      <tr>
+        <th class="p-2"><input type="checkbox" id="selectAll"></th>
+        <th class="p-2">Tên TK</th>
+        <th class="p-2">Ngân hàng</th>
+        <th class="p-2">Số tiền</th>
+        <th class="p-2">Kỳ hạn (tháng)</th>
+        <th class="p-2">Lãi suất (%)</th>
+        <th class="p-2">Ngày gửi</th>
+        <th class="p-2">Ngày đáo hạn</th>
+        <th class="p-2">Tổng lãi kỳ hạn</th>
+        <th class="p-2">Tổng tiền đáo hạn</th>
+      </tr>
+    </thead>
+    <tbody id="savingTable"></tbody>
+  </table>
+
+  <canvas id="bankChart" width="400" height="200" class="mt-8"></canvas>
+
+  <!-- Modal thêm sổ -->
+  <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+      <h2 class="text-xl font-bold mb-4">Thêm Sổ Mới</h2>
+      <form id="addForm" class="space-y-2">
+        <input required type="text" id="accountName" placeholder="Tên tài khoản" class="w-full border p-2 rounded">
+        <input required type="text" id="bank" placeholder="Ngân hàng" class="w-full border p-2 rounded">
+        <input required type="number" id="amount" placeholder="Số tiền (₫)" class="w-full border p-2 rounded">
+        <input required type="number" id="term" placeholder="Kỳ hạn (tháng)" class="w-full border p-2 rounded">
+        <input required type="number" id="interestRate" placeholder="Lãi suất %" class="w-full border p-2 rounded">
+        <input required type="date" id="startDate" class="w-full border p-2 rounded">
+        <button type="submit" class="bg-blue-500 text-white w-full py-2 rounded-lg hover:bg-blue-600">Lưu</button>
+      </form>
     </div>
-
-    <div class="summary">
-      <div>💸 Tổng tiền đang gửi: <span id="totalPrincipal">0</span> VNĐ</div>
-      <div>💰 Tổng lãi dự kiến: <span id="totalExpectedInterest">0</span> VNĐ</div>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th class="checkbox-col"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
-          <th>Ngân hàng</th>
-          <th>Số tiền gửi</th>
-          <th>Lãi suất</th>
-          <th>Số ngày gửi</th>
-          <th>Lãi dự kiến</th>
-          <th>Tổng lãi đang chạy</th>
-          <th>Bắt đầu</th>
-          <th>Hành động</th>
-        </tr>
-      </thead>
-      <tbody id="list"></tbody>
-    </table>
   </div>
 
   <script>
-    let savings = JSON.parse(localStorage.getItem('savings')) || [];
+    const addBtn = document.getElementById("addBtn");
+    const modal = document.getElementById("modal");
+    const addForm = document.getElementById("addForm");
+    const savingTable = document.getElementById("savingTable");
+    const totalInterestEl = document.getElementById("totalInterest");
+    const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+    const selectAll = document.getElementById("selectAll");
 
-    function saveData() {
-      localStorage.setItem('savings', JSON.stringify(savings));
-      render();
-    }
+    let savings = JSON.parse(localStorage.getItem("savings")) || [];
+    let totalInterestValue = parseFloat(localStorage.getItem("totalInterestValue")) || 0;
+    let lastUpdate = parseFloat(localStorage.getItem("lastUpdate")) || Date.now();
 
-    function addSaving() {
-      const bank = document.getElementById('bank').value;
-      const amount = parseFloat(document.getElementById('amount').value);
-      const rate = parseFloat(document.getElementById('rate').value);
-      const days = parseInt(document.getElementById('days').value);
+    const interestPerMs = savings.reduce((sum, s) => sum + s.amount * (s.interestRate / 100) / 365 / 24 / 3600 / 1000, 0);
+    totalInterestValue += (Date.now() - lastUpdate) * interestPerMs;
+    localStorage.setItem("totalInterestValue", totalInterestValue);
+    localStorage.setItem("lastUpdate", Date.now());
 
-      if (!bank || !amount || !rate || !days) return alert("Nhập đầy đủ thông tin!");
+    const updateTotalInterest = () => {
+      totalInterestValue += interestPerMs * 1000;
+      localStorage.setItem("totalInterestValue", totalInterestValue);
+      localStorage.setItem("lastUpdate", Date.now());
+      totalInterestEl.textContent = totalInterestValue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    };
 
-      const now = Date.now();
-      savings.push({ id: now, bank, amount, rate, days, start: now, accumulated: 0 });
-      saveData();
-    }
+    setInterval(updateTotalInterest, 1000);
 
-    function deleteSelected() {
-      const selected = document.querySelectorAll('.selectItem:checked');
-      if (selected.length === 0) return alert("Chưa chọn sổ nào để xóa!");
-      if (!confirm("Xóa " + selected.length + " sổ đã chọn?")) return;
-      const ids = Array.from(selected).map(cb => cb.dataset.id);
-      savings = savings.filter(s => !ids.includes(String(s.id)));
-      saveData();
-    }
+    const renderTable = () => {
+      savingTable.innerHTML = "";
+      savings.forEach((s, i) => {
+        const start = new Date(s.startDate);
+        const maturity = new Date(start);
+        maturity.setMonth(start.getMonth() + parseInt(s.term));
+        const interest = s.amount * s.interestRate / 100 * (s.term / 12);
+        const total = s.amount + interest;
 
-    function toggleSelectAll(el) {
-      document.querySelectorAll('.selectItem').forEach(cb => cb.checked = el.checked);
-    }
-
-    function deleteSaving(id) {
-      if (confirm("Xóa sổ này?")) {
-        savings = savings.filter(s => s.id !== id);
-        saveData();
-      }
-    }
-
-    function calcExpectedInterest(s) {
-      return s.amount * s.rate / 100 * s.days / 365;
-    }
-
-    function calcRunningInterest(s) {
-      const now = Date.now();
-      const elapsed = (now - s.start) / (1000 * 60 * 60 * 24);
-      const totalInterest = calcExpectedInterest(s);
-      const earned = Math.min(totalInterest * (elapsed / s.days), totalInterest);
-      return s.accumulated + earned;
-    }
-
-    function render() {
-      const tbody = document.getElementById('list');
-      tbody.innerHTML = "";
-      let totalPrincipal = 0;
-      let totalExpected = 0;
-
-      savings.forEach(s => {
-        totalPrincipal += s.amount;
-        totalExpected += calcExpectedInterest(s);
-        const tr = document.createElement('tr');
+        const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td><input type="checkbox" class="selectItem" data-id="${s.id}"></td>
-          <td>${s.bank}</td>
-          <td>${s.amount.toLocaleString()}</td>
-          <td>${s.rate}%</td>
-          <td>${s.days}</td>
-          <td>${calcExpectedInterest(s).toFixed(0).toLocaleString()}</td>
-          <td class="running" id="r${s.id}">0</td>
-          <td>${new Date(s.start).toLocaleString()}</td>
-          <td><button onclick="deleteSaving(${s.id})">Xóa</button></td>
+          <td class="text-center"><input type="checkbox" class="selectItem" data-index="${i}"></td>
+          <td class="p-2">${s.accountName}</td>
+          <td class="p-2">${s.bank}</td>
+          <td class="p-2">${s.amount.toLocaleString()}</td>
+          <td class="p-2">${s.term}</td>
+          <td class="p-2">${s.interestRate}</td>
+          <td class="p-2">${s.startDate}</td>
+          <td class="p-2">${maturity.toISOString().split('T')[0]}</td>
+          <td class="p-2 text-green-600">${interest.toLocaleString()}</td>
+          <td class="p-2 text-blue-600">${total.toLocaleString()}</td>
         `;
-        tbody.appendChild(tr);
+        savingTable.appendChild(tr);
       });
 
-      document.getElementById('totalPrincipal').innerText = totalPrincipal.toLocaleString();
-      document.getElementById('totalExpectedInterest').innerText = totalExpected.toLocaleString();
-    }
-
-    function updateInterests() {
-      savings.forEach(s => {
-        const interest = calcRunningInterest(s);
-        document.getElementById(`r${s.id}`)?.innerText = interest.toFixed(0).toLocaleString();
+      document.querySelectorAll(".selectItem").forEach(cb => {
+        cb.addEventListener("change", () => {
+          const anySelected = document.querySelectorAll(".selectItem:checked").length > 0;
+          deleteSelectedBtn.classList.toggle("hidden", !anySelected);
+        });
       });
-    }
 
-    setInterval(updateInterests, 1000);
-    render();
+      updateChart();
+    };
+
+    selectAll.addEventListener("change", () => {
+      document.querySelectorAll(".selectItem").forEach(cb => cb.checked = selectAll.checked);
+      deleteSelectedBtn.classList.toggle("hidden", !selectAll.checked);
+    });
+
+    deleteSelectedBtn.addEventListener("click", () => {
+      const selected = [...document.querySelectorAll(".selectItem:checked")].map(cb => parseInt(cb.dataset.index));
+      savings = savings.filter((_, i) => !selected.includes(i));
+      localStorage.setItem("savings", JSON.stringify(savings));
+      renderTable();
+      deleteSelectedBtn.classList.add("hidden");
+      selectAll.checked = false;
+    });
+
+    addBtn.onclick = () => modal.classList.remove("hidden");
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.add("hidden"); };
+
+    addForm.onsubmit = (e) => {
+      e.preventDefault();
+      const newSaving = {
+        accountName: accountName.value,
+        bank: bank.value,
+        amount: parseFloat(amount.value),
+        term: parseInt(term.value),
+        interestRate: parseFloat(interestRate.value),
+        startDate: startDate.value
+      };
+      savings.push(newSaving);
+      localStorage.setItem("savings", JSON.stringify(savings));
+      modal.classList.add("hidden");
+      addForm.reset();
+      renderTable();
+    };
+
+    // Xuất CSV
+    document.getElementById("exportBtn").onclick = () => {
+      const csv = ["Tên TK,Ngân hàng,Số tiền,Kỳ hạn,Lãi suất,Ngày gửi"];
+      savings.forEach(s => csv.push(`${s.accountName},${s.bank},${s.amount},${s.term},${s.interestRate},${s.startDate}`));
+      const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "so_tiet_kiem.csv";
+      a.click();
+    };
+
+    // Nhập CSV
+    document.getElementById("importFile").onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const lines = evt.target.result.split("\n").slice(1);
+        lines.forEach(line => {
+          const [accountName, bank, amount, term, interestRate, startDate] = line.split(",");
+          if (accountName) savings.push({ accountName, bank, amount: +amount, term: +term, interestRate: +interestRate, startDate });
+        });
+        localStorage.setItem("savings", JSON.stringify(savings));
+        renderTable();
+      };
+      reader.readAsText(file);
+    };
+
+    // Biểu đồ tổng tiền gửi theo ngân hàng
+    let chart;
+    const updateChart = () => {
+      const totals = {};
+      savings.forEach(s => totals[s.bank] = (totals[s.bank] || 0) + s.amount);
+      const ctx = document.getElementById("bankChart").getContext("2d");
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: Object.keys(totals),
+          datasets: [{ label: "Tổng tiền gửi (₫)", data: Object.values(totals) }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+    };
+
+    renderTable();
   </script>
 </body>
 </html>
