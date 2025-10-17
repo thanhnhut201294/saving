@@ -42,13 +42,17 @@
         + Tạo Sổ Mới
       </button>
 
-      <div class="flex flex-wrap space-x-3">
+      <div class="flex flex-wrap space-x-3 items-center">
         <button onclick="downloadSampleCSV()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 text-sm">Tải File Mẫu</button>
         <label class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 cursor-pointer text-sm">
           Nhập CSV
           <input type="file" id="importCSV" accept=".csv" class="hidden" onchange="importFromCSV(event)">
         </label>
         <button onclick="exportToCSV()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 text-sm">Xuất CSV</button>
+        
+        <button onclick="clearAllData()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm font-medium transition duration-150">
+          🗑️ Xóa Bộ Nhớ
+        </button>
       </div>
     </div>
     
@@ -138,12 +142,10 @@
 
   <script>
     let savings = JSON.parse(localStorage.getItem('savings')) || [];
-    // accumulatedInterest giờ là đối tượng lưu trữ thời điểm bắt đầu tính
     let accumulatedInterestData = JSON.parse(localStorage.getItem('accumulatedInterestData')) || { value: 0, lastUpdated: Date.now() };
     let editingIndex = null;
     let interestInterval;
 
-    // Định dạng tiền tệ VND
     const currencyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
     const numberFormatter = new Intl.NumberFormat('vi-VN');
 
@@ -156,50 +158,49 @@
     }
 
     /**
-     * Tính Ngày Đáo Hạn chính xác (cộng tháng).
-     * @param {string} startDate - Ngày bắt đầu (YYYY-MM-DD).
-     * @param {number} term - Kỳ hạn (tháng).
-     * @returns {string} Ngày đáo hạn (YYYY-MM-DD).
+     * Hàm mới: Xóa toàn bộ dữ liệu lưu trong localStorage
      */
+    function clearAllData() {
+        if (confirm('CẢNH BÁO: Thao tác này sẽ xóa TẤT CẢ sổ tiết kiệm và lãi lũy kế đã lưu. Bạn có chắc chắn muốn tiếp tục không?')) {
+            localStorage.removeItem('savings');
+            localStorage.removeItem('accumulatedInterestData');
+            
+            // Khởi tạo lại biến trong bộ nhớ
+            savings = [];
+            accumulatedInterestData = { value: 0, lastUpdated: Date.now() };
+            
+            // Dừng cập nhật lãi suất
+            clearInterval(interestInterval);
+            
+            // Cập nhật giao diện
+            renderTable();
+            updateDashboard();
+            document.getElementById('runningInterest').textContent = '0.00 VND';
+
+            alert('Đã xóa thành công tất cả dữ liệu đã lưu trữ.');
+        }
+    }
+
     function calculateMaturityDate(startDate, term) {
         const date = new Date(startDate);
-        // Lấy ngày trong tháng hiện tại
         const day = date.getDate();
-        
-        // Cộng thêm kỳ hạn
         date.setMonth(date.getMonth() + term);
-
-        // Xử lý trường hợp cộng tháng bị nhảy ngày (vd: 31/1 -> 31/2 -> 3/3)
-        // Nếu ngày của tháng mới khác ngày ban đầu, tức là bị nhảy qua đầu tháng sau,
-        // ta lùi về ngày cuối cùng của tháng đáo hạn.
         if (date.getDate() !== day) {
-            date.setDate(0); // Đặt ngày về ngày cuối cùng của tháng trước
+            date.setDate(0);
         }
-        
         return date.toISOString().split('T')[0];
     }
 
-    /**
-     * Tính lãi suất dự kiến (tổng lãi theo kỳ hạn).
-     */
     function calculateInterest(amount, rate, term) {
-      // Công thức: Gốc * Lãi suất năm * (Số tháng / 12)
       return amount * (rate / 100) * (term / 12);
     }
 
-    /**
-     * Tính lãi suất ngày (cơ sở để tính lãi đang chạy).
-     * Lãi suất ngày = Gốc * Lãi suất năm / 365
-     */
     function calculateDailyInterest(amount, rate) {
       return amount * (rate / 100 / 365);
     }
     
     // --- 2. Logic Dashboard và Lãi Đang Chạy ---
 
-    /**
-     * Cập nhật các chỉ số tổng hợp trên Dashboard.
-     */
     function updateDashboard() {
         if (savings.length === 0) {
             document.getElementById('totalPrincipal').textContent = currencyFormatter.format(0);
@@ -215,22 +216,16 @@
         document.getElementById('averageInterestRate').textContent = averageRate + '%';
     }
 
-    /**
-     * Tính và cập nhật Lãi Đang Chạy theo thời gian thực.
-     */
     function updateRunningInterest() {
-      // 1. Tính tổng lãi suất ngày của tất cả sổ đang hoạt động
       const activeSavings = savings.filter(s => new Date(calculateMaturityDate(s.startDate, s.term)) > new Date());
       const totalDaily = activeSavings.reduce((sum, s) => sum + calculateDailyInterest(s.amount, s.interestRate), 0);
-      const perSecond = totalDaily / (24 * 3600); // Lãi suất mỗi giây
+      const perSecond = totalDaily / (24 * 3600);
 
-      // 2. Tính lại lãi lũy kế từ lần cập nhật cuối cùng (quan trọng cho độ chính xác)
       const now = Date.now();
       const timeElapsedSeconds = (now - accumulatedInterestData.lastUpdated) / 1000;
       accumulatedInterestData.value += totalDaily * (timeElapsedSeconds / (24 * 3600));
       accumulatedInterestData.lastUpdated = now;
 
-      // 3. Thiết lập timer để cập nhật UI mỗi giây
       clearInterval(interestInterval);
       
       interestInterval = setInterval(() => {
@@ -239,13 +234,11 @@
             ? numberFormatter.format(accumulatedInterestData.value.toFixed(2)) + ' VND' 
             : '0.00 VND';
         
-        // Lưu trữ dữ liệu vào localStorage mỗi 60 giây (tối ưu hiệu năng)
         if (Math.floor(Date.now() / 1000) % 60 === 0) {
             saveToLocalStorage();
         }
       }, 1000);
 
-      // Hiển thị giá trị ban đầu (sau khi tính lại)
       document.getElementById('runningInterest').textContent = accumulatedInterestData.value > 0 
             ? numberFormatter.format(accumulatedInterestData.value.toFixed(2)) + ' VND' 
             : '0.00 VND';
@@ -261,7 +254,6 @@
       if (index !== null) {
         document.getElementById('popupTitle').textContent = 'Chỉnh Sửa Sổ Tiết Kiệm';
         const s = savings[index];
-        // Đổ dữ liệu vào form
         Object.keys(s).forEach(key => {
             const el = document.getElementById(key);
             if (el) el.value = s[key];
@@ -269,7 +261,6 @@
       } else {
         document.getElementById('popupTitle').textContent = 'Thêm Sổ Tiết Kiệm';
         clearForm();
-        // Set ngày mặc định là ngày hiện tại
         document.getElementById('startDate').valueAsDate = new Date();
       }
     }
@@ -287,13 +278,13 @@
     function validateForm(data) {
         const msgEl = document.getElementById('validationMessage');
         msgEl.classList.add('hidden');
-        if (Object.values(data).some(v => v === null || v === '' || v === undefined)) {
+        if (Object.values(data).some(v => v === null || v === '' || v === undefined || (typeof v === 'string' && v.trim() === ''))) {
             msgEl.textContent = 'Vui lòng điền đầy đủ tất cả các trường thông tin!';
             msgEl.classList.remove('hidden');
             return false;
         }
         if (data.amount <= 0 || data.interestRate < 0) {
-            msgEl.textContent = 'Số tiền và Lãi suất phải là số dương.';
+            msgEl.textContent = 'Số tiền và Lãi suất phải là số dương/không âm.';
             msgEl.classList.remove('hidden');
             return false;
         }
@@ -331,15 +322,12 @@
       }
     }
 
-    /**
-     * Hiển thị bảng và áp dụng lọc/sắp xếp.
-     */
     function renderTable() {
       const tbody = document.getElementById('savingsTable');
       const noDataMsg = document.getElementById('noDataMessage');
       tbody.innerHTML = '';
       
-      let displaySavings = [...savings]; // Clone mảng để không ảnh hưởng dữ liệu gốc
+      let displaySavings = [...savings];
 
       // --- ÁP DỤNG LỌC ---
       const filterStatus = document.getElementById('filterStatus').value;
@@ -381,7 +369,6 @@
         const statusText = isMatured ? 'Đã đáo hạn' : 'Đang hoạt động';
         const statusClass = isMatured ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
 
-        // Tìm index gốc của sổ để áp dụng hàm sửa/xóa
         const originalIndex = savings.findIndex(item => item === s); 
 
         tbody.innerHTML += `
@@ -404,7 +391,7 @@
       });
     }
 
-    // --- 4. CSV Import/Export (Giữ nguyên và tinh chỉnh) ---
+    // --- 4. CSV Import/Export (Giữ nguyên) ---
 
     function downloadSampleCSV() {
       const rows = [
@@ -431,12 +418,10 @@
         const newSavings = [];
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i].split(',');
-          // Yêu cầu 8 cột dữ liệu
           if (values.length < 8) continue; 
           
           const [accountName, amount, bank, startDate, term, interestRate, interestType, renewalType] = values;
           
-          // Kiểm tra và chuyển đổi dữ liệu
           const parsedAmount = parseFloat(amount);
           const parsedTerm = parseInt(term);
           const parsedRate = parseFloat(interestRate);
@@ -451,12 +436,12 @@
           }
         }
         
-        savings = [...savings, ...newSavings]; // Thêm vào mảng hiện tại thay vì thay thế hoàn toàn
+        savings = [...savings, ...newSavings];
         saveToLocalStorage();
         renderTable();
         updateRunningInterest();
         alert(`Đã nhập thành công ${newSavings.length} sổ tiết kiệm!`);
-        e.target.value = ''; // Reset input file
+        e.target.value = '';
       };
       reader.readAsText(file);
     }
