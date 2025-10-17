@@ -3,123 +3,274 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quản lý Sổ Tiết Kiệm</title>
+  <title>Quản lý Sổ Tiết Kiệm Nâng Cao</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Ẩn thanh cuộn số trên input type="number" cho Chrome/Safari/Opera */
+    .no-spinners::-webkit-outer-spin-button,
+    .no-spinners::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    /* Ẩn thanh cuộn số trên input type="number" cho Firefox */
+    .no-spinners {
+      -moz-appearance: textfield;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
-  <div class="w-full max-w-6xl bg-white shadow-md rounded-lg p-6">
-    <h1 class="text-2xl font-bold text-center mb-6">💰 Quản lý Sổ Tiết Kiệm</h1>
+  <div class="w-full max-w-6xl bg-white shadow-xl rounded-lg p-8">
+    <h1 class="text-3xl font-extrabold text-center text-blue-700 mb-8">💰 Quản lý Sổ Tiết Kiệm Nâng Cao</h1>
 
-    <!-- Nút mở pop-up -->
-    <div class="mb-6">
-      <button onclick="openPopup()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Tạo Sổ Mới</button>
-    </div>
-
-    <!-- Pop-up thêm/sửa sổ -->
-    <div id="popup" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 id="popupTitle" class="text-lg font-semibold mb-4">Thêm Sổ Tiết Kiệm</h2>
-        <div class="grid grid-cols-1 gap-4">
-          <input id="accountName" type="text" placeholder="Tên tài khoản" class="border p-2 rounded" required>
-          <input id="amount" type="number" placeholder="Số tiền gửi (VND)" class="border p-2 rounded" required>
-          <input id="bank" type="text" placeholder="Ngân hàng" class="border p-2 rounded" required>
-          <input id="startDate" type="date" class="border p-2 rounded" required>
-          <select id="term" class="border p-2 rounded" required>
-            <option value="" disabled selected>Chọn kỳ hạn (tháng)</option>
-            <option value="1">1 tháng</option>
-            <option value="3">3 tháng</option>
-            <option value="6">6 tháng</option>
-            <option value="12">12 tháng</option>
-          </select>
-          <input id="interestRate" type="number" step="0.1" placeholder="Lãi suất (%/năm)" class="border p-2 rounded" required>
-          <select id="interestType" class="border p-2 rounded" required>
-            <option value="" disabled selected>Hình thức trả lãi</option>
-            <option value="start">Đầu kỳ</option>
-            <option value="end">Cuối kỳ</option>
-          </select>
-          <select id="renewalType" class="border p-2 rounded" required>
-            <option value="" disabled selected>Khi đến hạn</option>
-            <option value="principal">Tái tục gốc</option>
-            <option value="principalAndInterest">Tái tục gốc và lãi</option>
-          </select>
-        </div>
-        <div class="mt-4 flex justify-end space-x-2">
-          <button id="saveButton" onclick="saveSavings()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Lưu</button>
-          <button onclick="closePopup()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Hủy</button>
-        </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 bg-blue-50 rounded-lg shadow-inner">
+      <div class="text-center p-3 bg-white rounded-md shadow">
+        <h3 class="text-sm font-medium text-gray-500">Tổng Gốc Đang Gửi</h3>
+        <p class="text-xl font-bold text-blue-600" id="totalPrincipal">0 VND</p>
+      </div>
+      <div class="text-center p-3 bg-white rounded-md shadow">
+        <h3 class="text-sm font-medium text-gray-500">Lãi Suất TB (Bình Quân)</h3>
+        <p class="text-xl font-bold text-green-600" id="averageInterestRate">0.00%</p>
+      </div>
+      <div class="text-center p-3 bg-white rounded-md shadow">
+        <h3 class="text-sm font-medium text-gray-500">💸 Lãi Đang Chạy</h3>
+        <p class="text-2xl font-extrabold text-yellow-600" id="runningInterest">0.00 VND</p>
       </div>
     </div>
+    
+    <div class="flex flex-wrap justify-between items-center mb-6 space-y-3 sm:space-y-0">
+      <button onclick="openPopup()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150 shadow-md">
+        + Tạo Sổ Mới
+      </button>
 
-    <!-- Tổng lãi đang chạy -->
-    <div class="mb-6">
-      <h2 class="text-lg font-semibold">💸 Tiền Lãi Đang Chạy</h2>
-      <p class="text-xl">Tổng lãi: <span id="runningInterest" class="font-bold">0</span> VND</p>
+      <div class="flex flex-wrap space-x-3">
+        <button onclick="downloadSampleCSV()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 text-sm">Tải File Mẫu</button>
+        <label class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 cursor-pointer text-sm">
+          Nhập CSV
+          <input type="file" id="importCSV" accept=".csv" class="hidden" onchange="importFromCSV(event)">
+        </label>
+        <button onclick="exportToCSV()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 text-sm">Xuất CSV</button>
+      </div>
+    </div>
+    
+    <div class="flex flex-wrap items-center space-x-4 mb-6">
+        <div class="flex items-center space-x-2">
+            <label for="filterStatus" class="text-gray-600 text-sm font-medium">Lọc theo:</label>
+            <select id="filterStatus" onchange="renderTable()" class="border p-2 rounded text-sm">
+                <option value="all">Tất cả</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="matured">Đã đáo hạn</option>
+            </select>
+        </div>
+        <div class="flex items-center space-x-2">
+            <label for="sortBy" class="text-gray-600 text-sm font-medium">Sắp xếp:</label>
+            <select id="sortBy" onchange="renderTable()" class="border p-2 rounded text-sm">
+                <option value="maturityDateAsc">Ngày Đáo Hạn (Sớm nhất)</option>
+                <option value="amountDesc">Số Tiền (Giảm dần)</option>
+                <option value="interestRateDesc">Lãi Suất (Giảm dần)</option>
+            </select>
+        </div>
     </div>
 
-    <!-- Nút xuất nhập CSV -->
-    <div class="mb-6 flex space-x-4">
-      <button onclick="downloadSampleCSV()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Tải File Mẫu CSV</button>
-      <label class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 cursor-pointer">
-        Nhập từ CSV
-        <input type="file" id="importCSV" accept=".csv" class="hidden" onchange="importFromCSV(event)">
-      </label>
-      <button onclick="exportToCSV()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Xuất ra CSV</button>
-    </div>
-
-    <!-- Danh sách -->
     <div>
-      <h2 class="text-lg font-semibold mb-2">📘 Danh Sách Sổ Tiết Kiệm</h2>
-      <div class="overflow-x-auto">
+      <h2 class="text-xl font-semibold mb-3 text-gray-700">📘 Danh Sách Sổ Tiết Kiệm</h2>
+      <div class="overflow-x-auto border rounded-lg shadow-sm">
         <table class="w-full border-collapse text-sm">
           <thead>
-            <tr class="bg-gray-200">
-              <th class="border p-2">Tên TK</th>
-              <th class="border p-2">Số Tiền</th>
-              <th class="border p-2">Ngân Hàng</th>
-              <th class="border p-2">Ngày Gửi</th>
-              <th class="border p-2">Ngày Đáo Hạn</th>
-              <th class="border p-2">Kỳ Hạn</th>
-              <th class="border p-2">Lãi Suất</th>
-              <th class="border p-2">Lãi Suất Dự Kiến</th>
-              <th class="border p-2">Tổng Gốc + Lãi</th>
-              <th class="border p-2">Hình Thức Lãi</th>
-              <th class="border p-2">Khi Đến Hạn</th>
-              <th class="border p-2">Hành Động</th>
+            <tr class="bg-gray-200 uppercase text-xs text-gray-600">
+              <th class="border p-3 text-left">Tên TK</th>
+              <th class="border p-3">Số Tiền (VND)</th>
+              <th class="border p-3">Ngân Hàng</th>
+              <th class="border p-3">Ngày Gửi</th>
+              <th class="border p-3">Ngày Đáo Hạn</th>
+              <th class="border p-3">Kỳ Hạn (Tháng)</th>
+              <th class="border p-3">Lãi Suất (%/Năm)</th>
+              <th class="border p-3">Lãi Dự Kiến (VND)</th>
+              <th class="border p-3">Tổng Gốc + Lãi</th>
+              <th class="border p-3">Trạng Thái</th>
+              <th class="border p-3">Hành Động</th>
             </tr>
           </thead>
           <tbody id="savingsTable"></tbody>
         </table>
+        <p id="noDataMessage" class="hidden p-4 text-center text-gray-500">Chưa có sổ tiết kiệm nào. Hãy tạo sổ mới!</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="popup" class="fixed inset-0 bg-gray-900 bg-opacity-70 z-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-100">
+      <h2 id="popupTitle" class="text-2xl font-bold mb-5 text-blue-700">Thêm Sổ Tiết Kiệm</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <input id="accountName" type="text" placeholder="Tên tài khoản/mục đích" class="border p-3 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+        <input id="amount" type="number" placeholder="Số tiền gửi (VND)" class="border p-3 rounded-lg no-spinners focus:ring-blue-500 focus:border-blue-500" min="1000" required>
+        <input id="bank" type="text" placeholder="Ngân hàng" class="border p-3 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+        <input id="startDate" type="date" class="border p-3 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+        
+        <select id="term" class="border p-3 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+          <option value="" disabled selected>Chọn kỳ hạn (tháng)</option>
+          <option value="1">1 tháng</option>
+          <option value="3">3 tháng</option>
+          <option value="6">6 tháng</option>
+          <option value="12">12 tháng</option>
+          <option value="24">24 tháng</option>
+          <option value="36">36 tháng</option>
+        </select>
+        <input id="interestRate" type="number" step="0.01" placeholder="Lãi suất (%/năm)" class="border p-3 rounded-lg no-spinners focus:ring-blue-500 focus:border-blue-500" min="0" required>
+        
+        <select id="interestType" class="border p-3 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+          <option value="" disabled selected>Hình thức trả lãi</option>
+          <option value="end">Cuối kỳ</option>
+          <option value="start">Đầu kỳ</option>
+        </select>
+        <select id="renewalType" class="border p-3 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+          <option value="" disabled selected>Khi đến hạn</option>
+          <option value="principal">Tái tục gốc</option>
+          <option value="principalAndInterest">Tái tục gốc và lãi</option>
+        </select>
+      </div>
+      <div id="validationMessage" class="mt-3 text-red-500 text-sm hidden"></div>
+      <div class="mt-6 flex justify-end space-x-3">
+        <button onclick="closePopup()" class="bg-gray-400 text-white px-5 py-2 rounded-lg hover:bg-gray-500 font-semibold transition duration-150">Hủy</button>
+        <button id="saveButton" onclick="saveSavings()" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 font-semibold transition duration-150">Lưu Sổ</button>
       </div>
     </div>
   </div>
 
   <script>
     let savings = JSON.parse(localStorage.getItem('savings')) || [];
-    let accumulatedInterest = parseFloat(localStorage.getItem('accumulatedInterest')) || 0;
+    // accumulatedInterest giờ là đối tượng lưu trữ thời điểm bắt đầu tính
+    let accumulatedInterestData = JSON.parse(localStorage.getItem('accumulatedInterestData')) || { value: 0, lastUpdated: Date.now() };
     let editingIndex = null;
+    let interestInterval;
+
+    // Định dạng tiền tệ VND
+    const currencyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
+    const numberFormatter = new Intl.NumberFormat('vi-VN');
+
+    // --- 1. Logic Lưu trữ và Tính toán Cốt lõi ---
 
     function saveToLocalStorage() {
       localStorage.setItem('savings', JSON.stringify(savings));
-      localStorage.setItem('accumulatedInterest', accumulatedInterest);
+      localStorage.setItem('accumulatedInterestData', JSON.stringify(accumulatedInterestData));
+      updateDashboard();
     }
+
+    /**
+     * Tính Ngày Đáo Hạn chính xác (cộng tháng).
+     * @param {string} startDate - Ngày bắt đầu (YYYY-MM-DD).
+     * @param {number} term - Kỳ hạn (tháng).
+     * @returns {string} Ngày đáo hạn (YYYY-MM-DD).
+     */
+    function calculateMaturityDate(startDate, term) {
+        const date = new Date(startDate);
+        // Lấy ngày trong tháng hiện tại
+        const day = date.getDate();
+        
+        // Cộng thêm kỳ hạn
+        date.setMonth(date.getMonth() + term);
+
+        // Xử lý trường hợp cộng tháng bị nhảy ngày (vd: 31/1 -> 31/2 -> 3/3)
+        // Nếu ngày của tháng mới khác ngày ban đầu, tức là bị nhảy qua đầu tháng sau,
+        // ta lùi về ngày cuối cùng của tháng đáo hạn.
+        if (date.getDate() !== day) {
+            date.setDate(0); // Đặt ngày về ngày cuối cùng của tháng trước
+        }
+        
+        return date.toISOString().split('T')[0];
+    }
+
+    /**
+     * Tính lãi suất dự kiến (tổng lãi theo kỳ hạn).
+     */
+    function calculateInterest(amount, rate, term) {
+      // Công thức: Gốc * Lãi suất năm * (Số tháng / 12)
+      return amount * (rate / 100) * (term / 12);
+    }
+
+    /**
+     * Tính lãi suất ngày (cơ sở để tính lãi đang chạy).
+     * Lãi suất ngày = Gốc * Lãi suất năm / 365
+     */
+    function calculateDailyInterest(amount, rate) {
+      return amount * (rate / 100 / 365);
+    }
+    
+    // --- 2. Logic Dashboard và Lãi Đang Chạy ---
+
+    /**
+     * Cập nhật các chỉ số tổng hợp trên Dashboard.
+     */
+    function updateDashboard() {
+        if (savings.length === 0) {
+            document.getElementById('totalPrincipal').textContent = currencyFormatter.format(0);
+            document.getElementById('averageInterestRate').textContent = '0.00%';
+            return;
+        }
+
+        const totalPrincipal = savings.reduce((sum, s) => sum + s.amount, 0);
+        const weightedInterestRate = savings.reduce((sum, s) => sum + s.amount * s.interestRate, 0);
+        const averageRate = (weightedInterestRate / totalPrincipal).toFixed(2);
+        
+        document.getElementById('totalPrincipal').textContent = currencyFormatter.format(totalPrincipal);
+        document.getElementById('averageInterestRate').textContent = averageRate + '%';
+    }
+
+    /**
+     * Tính và cập nhật Lãi Đang Chạy theo thời gian thực.
+     */
+    function updateRunningInterest() {
+      // 1. Tính tổng lãi suất ngày của tất cả sổ đang hoạt động
+      const activeSavings = savings.filter(s => new Date(calculateMaturityDate(s.startDate, s.term)) > new Date());
+      const totalDaily = activeSavings.reduce((sum, s) => sum + calculateDailyInterest(s.amount, s.interestRate), 0);
+      const perSecond = totalDaily / (24 * 3600); // Lãi suất mỗi giây
+
+      // 2. Tính lại lãi lũy kế từ lần cập nhật cuối cùng (quan trọng cho độ chính xác)
+      const now = Date.now();
+      const timeElapsedSeconds = (now - accumulatedInterestData.lastUpdated) / 1000;
+      accumulatedInterestData.value += totalDaily * (timeElapsedSeconds / (24 * 3600));
+      accumulatedInterestData.lastUpdated = now;
+
+      // 3. Thiết lập timer để cập nhật UI mỗi giây
+      clearInterval(interestInterval);
+      
+      interestInterval = setInterval(() => {
+        accumulatedInterestData.value += perSecond;
+        document.getElementById('runningInterest').textContent = accumulatedInterestData.value > 0 
+            ? numberFormatter.format(accumulatedInterestData.value.toFixed(2)) + ' VND' 
+            : '0.00 VND';
+        
+        // Lưu trữ dữ liệu vào localStorage mỗi 60 giây (tối ưu hiệu năng)
+        if (Math.floor(Date.now() / 1000) % 60 === 0) {
+            saveToLocalStorage();
+        }
+      }, 1000);
+
+      // Hiển thị giá trị ban đầu (sau khi tính lại)
+      document.getElementById('runningInterest').textContent = accumulatedInterestData.value > 0 
+            ? numberFormatter.format(accumulatedInterestData.value.toFixed(2)) + ' VND' 
+            : '0.00 VND';
+    }
+
+    // --- 3. Logic Form và DOM ---
 
     function openPopup(index = null) {
       editingIndex = index;
       document.getElementById('popup').classList.remove('hidden');
+      document.getElementById('validationMessage').classList.add('hidden');
+      
       if (index !== null) {
-        document.getElementById('popupTitle').textContent = 'Chỉnh sửa Sổ Tiết Kiệm';
+        document.getElementById('popupTitle').textContent = 'Chỉnh Sửa Sổ Tiết Kiệm';
         const s = savings[index];
-        document.getElementById('accountName').value = s.accountName;
-        document.getElementById('amount').value = s.amount;
-        document.getElementById('bank').value = s.bank;
-        document.getElementById('startDate').value = s.startDate;
-        document.getElementById('term').value = s.term;
-        document.getElementById('interestRate').value = s.interestRate;
-        document.getElementById('interestType').value = s.interestType;
-        document.getElementById('renewalType').value = s.renewalType;
+        // Đổ dữ liệu vào form
+        Object.keys(s).forEach(key => {
+            const el = document.getElementById(key);
+            if (el) el.value = s[key];
+        });
       } else {
         document.getElementById('popupTitle').textContent = 'Thêm Sổ Tiết Kiệm';
         clearForm();
+        // Set ngày mặc định là ngày hiện tại
+        document.getElementById('startDate').valueAsDate = new Date();
       }
     }
 
@@ -133,19 +284,38 @@
       ['accountName','amount','bank','startDate','term','interestRate','interestType','renewalType'].forEach(id => document.getElementById(id).value = '');
     }
 
+    function validateForm(data) {
+        const msgEl = document.getElementById('validationMessage');
+        msgEl.classList.add('hidden');
+        if (Object.values(data).some(v => v === null || v === '' || v === undefined)) {
+            msgEl.textContent = 'Vui lòng điền đầy đủ tất cả các trường thông tin!';
+            msgEl.classList.remove('hidden');
+            return false;
+        }
+        if (data.amount <= 0 || data.interestRate < 0) {
+            msgEl.textContent = 'Số tiền và Lãi suất phải là số dương.';
+            msgEl.classList.remove('hidden');
+            return false;
+        }
+        return true;
+    }
+
     function saveSavings() {
       const data = {
-        accountName: accountName.value,
+        accountName: accountName.value.trim(),
         amount: parseFloat(amount.value),
-        bank: bank.value,
+        bank: bank.value.trim(),
         startDate: startDate.value,
         term: parseInt(term.value),
         interestRate: parseFloat(interestRate.value),
         interestType: interestType.value,
         renewalType: renewalType.value
       };
-      if (Object.values(data).some(v => !v)) return alert('Nhập đầy đủ thông tin!');
+      
+      if (!validateForm(data)) return;
+
       if (editingIndex !== null) savings[editingIndex] = data; else savings.push(data);
+      
       saveToLocalStorage();
       renderTable();
       updateRunningInterest();
@@ -153,7 +323,7 @@
     }
 
     function deleteSavings(index) {
-      if (confirm('Xóa sổ tiết kiệm này?')) {
+      if (confirm('Bạn chắc chắn muốn xóa sổ tiết kiệm này?')) {
         savings.splice(index, 1);
         saveToLocalStorage();
         renderTable();
@@ -161,67 +331,88 @@
       }
     }
 
-    function calculateMaturityDate(startDate, term) {
-      const date = new Date(startDate);
-      date.setMonth(date.getMonth() + term);
-      return date.toISOString().split('T')[0];
-    }
-
-    function calculateInterest(amount, rate, months) {
-      return amount * (rate / 100) * (months / 12);
-    }
-
+    /**
+     * Hiển thị bảng và áp dụng lọc/sắp xếp.
+     */
     function renderTable() {
       const tbody = document.getElementById('savingsTable');
+      const noDataMsg = document.getElementById('noDataMessage');
       tbody.innerHTML = '';
-      savings.forEach((s, i) => {
+      
+      let displaySavings = [...savings]; // Clone mảng để không ảnh hưởng dữ liệu gốc
+
+      // --- ÁP DỤNG LỌC ---
+      const filterStatus = document.getElementById('filterStatus').value;
+      const today = new Date().toISOString().split('T')[0];
+
+      if (filterStatus !== 'all') {
+          displaySavings = displaySavings.filter(s => {
+              const maturity = calculateMaturityDate(s.startDate, s.term);
+              const isMatured = maturity <= today;
+              return filterStatus === 'active' ? !isMatured : isMatured;
+          });
+      }
+
+      // --- ÁP DỤNG SẮP XẾP ---
+      const sortBy = document.getElementById('sortBy').value;
+      displaySavings.sort((a, b) => {
+          const maturityA = calculateMaturityDate(a.startDate, a.term);
+          const maturityB = calculateMaturityDate(b.startDate, b.term);
+
+          if (sortBy === 'maturityDateAsc') return new Date(maturityA) - new Date(maturityB);
+          if (sortBy === 'amountDesc') return b.amount - a.amount;
+          if (sortBy === 'interestRateDesc') return b.interestRate - a.interestRate;
+          return 0;
+      });
+
+      if (displaySavings.length === 0) {
+          noDataMsg.classList.remove('hidden');
+          return;
+      } else {
+          noDataMsg.classList.add('hidden');
+      }
+
+      // --- HIỂN THỊ DỮ LIỆU ---
+      displaySavings.forEach((s, i) => {
         const maturity = calculateMaturityDate(s.startDate, s.term);
         const interest = calculateInterest(s.amount, s.interestRate, s.term);
         const total = s.amount + interest;
+        const isMatured = maturity <= today;
+        const statusText = isMatured ? 'Đã đáo hạn' : 'Đang hoạt động';
+        const statusClass = isMatured ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
+
+        // Tìm index gốc của sổ để áp dụng hàm sửa/xóa
+        const originalIndex = savings.findIndex(item => item === s); 
+
         tbody.innerHTML += `
-          <tr>
-            <td class="border p-2">${s.accountName}</td>
-            <td class="border p-2">${s.amount.toLocaleString()}</td>
-            <td class="border p-2">${s.bank}</td>
-            <td class="border p-2">${s.startDate}</td>
-            <td class="border p-2">${maturity}</td>
-            <td class="border p-2">${s.term}</td>
-            <td class="border p-2">${s.interestRate}%</td>
-            <td class="border p-2">${interest.toLocaleString()}</td>
-            <td class="border p-2 font-semibold">${total.toLocaleString()}</td>
-            <td class="border p-2">${s.interestType === 'start' ? 'Đầu kỳ' : 'Cuối kỳ'}</td>
-            <td class="border p-2">${s.renewalType === 'principal' ? 'Tái tục gốc' : 'Tái tục gốc và lãi'}</td>
-            <td class="border p-2 space-x-2">
-              <button onclick="openPopup(${i})" class="bg-yellow-400 text-white px-2 py-1 rounded">Sửa</button>
-              <button onclick="deleteSavings(${i})" class="bg-red-500 text-white px-2 py-1 rounded">Xóa</button>
+          <tr class="hover:bg-gray-50 transition duration-150">
+            <td class="border p-3 text-left font-medium text-gray-800">${s.accountName}</td>
+            <td class="border p-3 text-right">${currencyFormatter.format(s.amount)}</td>
+            <td class="border p-3">${s.bank}</td>
+            <td class="border p-3">${s.startDate}</td>
+            <td class="border p-3 font-semibold text-orange-600">${maturity}</td>
+            <td class="border p-3">${s.term}</td>
+            <td class="border p-3 text-right">${s.interestRate}%</td>
+            <td class="border p-3 text-right text-green-700">${numberFormatter.format(interest.toFixed(0))}</td>
+            <td class="border p-3 text-right font-extrabold text-blue-700">${currencyFormatter.format(total.toFixed(0))}</td>
+            <td class="border p-3"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${statusText}</span></td>
+            <td class="border p-3 space-x-1 whitespace-nowrap">
+              <button onclick="openPopup(${originalIndex})" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-xs">Sửa</button>
+              <button onclick="deleteSavings(${originalIndex})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs">Xóa</button>
             </td>
           </tr>`;
       });
     }
 
-    function calculateDailyInterest(amount, rate) {
-      return amount * (rate / 100 / 365);
-    }
+    // --- 4. CSV Import/Export (Giữ nguyên và tinh chỉnh) ---
 
-    function updateRunningInterest() {
-      const totalDaily = savings.reduce((sum, s) => sum + calculateDailyInterest(s.amount, s.interestRate), 0);
-      const perSecond = totalDaily / (24 * 3600);
-      clearInterval(window.interestInterval);
-      window.interestInterval = setInterval(() => {
-        accumulatedInterest += perSecond;
-        document.getElementById('runningInterest').textContent = accumulatedInterest.toFixed(2);
-        saveToLocalStorage();
-      }, 1000);
-    }
-
-    // CSV Import/Export
     function downloadSampleCSV() {
       const rows = [
         ['accountName','amount','bank','startDate','term','interestRate','interestType','renewalType'],
-        ['Nguyen Van A',10000000,'Vietcombank','2025-01-01',6,5.5,'end','principal']
+        ['So Tieu Dung',10000000,'Vietcombank','2025-01-01',6,5.5,'end','principalAndInterest']
       ];
       const csv = rows.map(r => r.join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'sample_savings.csv';
@@ -230,39 +421,65 @@
 
     function importFromCSV(e) {
       const file = e.target.files[0];
+      if (!file) return;
+
       const reader = new FileReader();
       reader.onload = evt => {
-        const lines = evt.target.result.split('\n').map(l => l.split(','));
-        savings = [];
+        const lines = evt.target.result.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length <= 1) return alert('File CSV không có dữ liệu hoặc sai định dạng.');
+
+        const newSavings = [];
         for (let i = 1; i < lines.length; i++) {
-          const [accountName, amount, bank, startDate, term, interestRate, interestType, renewalType] = lines[i];
-          if (accountName && amount) savings.push({
-            accountName, amount: parseFloat(amount), bank, startDate,
-            term: parseInt(term), interestRate: parseFloat(interestRate),
-            interestType, renewalType
-          });
+          const values = lines[i].split(',');
+          // Yêu cầu 8 cột dữ liệu
+          if (values.length < 8) continue; 
+          
+          const [accountName, amount, bank, startDate, term, interestRate, interestType, renewalType] = values;
+          
+          // Kiểm tra và chuyển đổi dữ liệu
+          const parsedAmount = parseFloat(amount);
+          const parsedTerm = parseInt(term);
+          const parsedRate = parseFloat(interestRate);
+
+          if (accountName && parsedAmount && parsedTerm && parsedRate) {
+             newSavings.push({
+                accountName, amount: parsedAmount, bank, startDate,
+                term: parsedTerm, interestRate: parsedRate,
+                interestType: interestType || 'end', 
+                renewalType: renewalType || 'principal'
+             });
+          }
         }
+        
+        savings = [...savings, ...newSavings]; // Thêm vào mảng hiện tại thay vì thay thế hoàn toàn
         saveToLocalStorage();
         renderTable();
         updateRunningInterest();
+        alert(`Đã nhập thành công ${newSavings.length} sổ tiết kiệm!`);
+        e.target.value = ''; // Reset input file
       };
       reader.readAsText(file);
     }
 
     function exportToCSV() {
       const rows = [['accountName','amount','bank','startDate','term','interestRate','interestType','renewalType'],
-        ...savings.map(s => [s.accountName, s.amount, s.bank, s.startDate, s.term, s.interestRate, s.interestType, s.renewalType])
+        ...savings.map(s => [s.accountName, s.amount, s.bank, s.startDate, s.term, s.interestRate, s.interestType, s.renewalType].join(','))
       ];
-      const csv = rows.map(r => r.join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
+      const csv = rows.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'savings_export.csv';
       a.click();
     }
 
-    renderTable();
-    updateRunningInterest();
+    // Khởi tạo ứng dụng
+    window.onload = () => {
+        renderTable();
+        updateDashboard();
+        updateRunningInterest();
+    };
+
   </script>
 </body>
 </html>
