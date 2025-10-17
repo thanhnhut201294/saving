@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
+    /* Ẩn thanh cuộn số trên input type="number" */
     .no-spinners::-webkit-outer-spin-button,
     .no-spinners::-webkit-inner-spin-button {
       -webkit-appearance: none;
@@ -15,14 +16,9 @@
     .no-spinners {
       -moz-appearance: textfield;
     }
-    /* Tinh chỉnh cột Hành động cho bảng */
-    .action-cell {
-        min-width: 120px;
-    }
-    /* Làm cho các ô số liệu đẹp hơn */
-    .data-cell {
-        text-align: right;
-    }
+    /* Tinh chỉnh giao diện bảng */
+    .action-cell { min-width: 120px; }
+    .data-cell { text-align: right; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
@@ -171,21 +167,53 @@
     const currencyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
     const numberFormatter = new Intl.NumberFormat('vi-VN');
 
-    // --- Hàm mới: Định dạng ngày (YYYY-MM-DD -> dd/mm/yyyy) ---
+    // --- Hàm chuyển đổi định dạng ngày mới ---
+    
+    /**
+     * Chuyển đổi định dạng ngày D/M/YYYY hoặc DD/MM/YYYY thành YYYY-MM-DD.
+     * @param {string} dateString - Chuỗi ngày ở định dạng D/M/YYYY hoặc tương tự.
+     * @returns {string} Ngày ở định dạng YYYY-MM-DD.
+     */
+    function convertDateToISO(dateString) {
+        if (!dateString) return '';
+        
+        // Cắt chuỗi theo dấu '/' hoặc '-'
+        const parts = dateString.split(/[-\/]/).map(p => p.trim());
+        
+        if (parts.length !== 3) {
+            // Nếu không đúng 3 phần, có thể là định dạng YYYY-MM-DD hợp lệ, giữ nguyên
+            if (/\d{4}-\d{2}-\d{2}/.test(dateString)) return dateString; 
+            throw new Error("Định dạng ngày không hợp lệ.");
+        }
+
+        // Giả định định dạng là D/M/YYYY (hoặc DD/MM/YYYY)
+        let [day, month, year] = parts;
+
+        // Xử lý trường hợp ngày và tháng chỉ có 1 chữ số
+        day = day.length === 1 ? '0' + day : day;
+        month = month.length === 1 ? '0' + month : month;
+
+        // Nếu định dạng là MM/DD/YYYY, cần đảo lại:
+        // if (useMMDDYYYY) [month, day, year] = parts; // Bỏ qua nếu CSV dùng DD/MM/YYYY
+
+        // Trả về định dạng ISO chuẩn YYYY-MM-DD
+        return `${year}-${month}-${day}`;
+    }
+
+    // Định dạng ngày hiển thị (YYYY-MM-DD -> DD/MM/YYYY)
     function formatDate(dateString) {
         if (!dateString) return '';
-        // Đảm bảo định dạng là YYYY-MM-DD
         const [year, month, day] = dateString.split('-');
         return `${day}/${month}/${year}`;
     }
 
-    // --- Logic Lưu trữ và Tính toán Cốt lõi (Giữ nguyên) ---
+    // --- Logic Lưu trữ và Tính toán Cốt lõi ---
 
     function saveToLocalStorage() {
       localStorage.setItem('savings', JSON.stringify(savings));
       localStorage.setItem('accumulatedInterestData', JSON.stringify(accumulatedInterestData));
       updateDashboard();
-      renderCharts(); // Cập nhật biểu đồ khi dữ liệu thay đổi
+      renderCharts();
     }
 
     function clearAllData() {
@@ -201,7 +229,7 @@
             renderTable();
             updateDashboard();
             document.getElementById('runningInterest').textContent = '0.00 VND';
-            renderCharts(); // Xóa biểu đồ
+            renderCharts(); 
 
             alert('Đã xóa thành công tất cả dữ liệu đã lưu trữ.');
         }
@@ -225,7 +253,7 @@
       return amount * (rate / 100 / 365);
     }
     
-    // --- Logic Dashboard và Lãi Đang Chạy (Giữ nguyên) ---
+    // --- Logic Dashboard, Lãi Đang Chạy, Biểu đồ (Giữ nguyên) ---
 
     function updateDashboard() {
         if (savings.length === 0) {
@@ -233,7 +261,7 @@
             document.getElementById('averageInterestRate').textContent = '0.00%';
             return;
         }
-        // ... (Logic Dashboard giữ nguyên) ...
+
         const totalPrincipal = savings.reduce((sum, s) => sum + s.amount, 0);
         const weightedInterestRate = savings.reduce((sum, s) => sum + s.amount * s.interestRate, 0);
         const averageRate = (weightedInterestRate / totalPrincipal).toFixed(2);
@@ -243,7 +271,6 @@
     }
 
     function updateRunningInterest() {
-      // ... (Logic Lãi Đang Chạy giữ nguyên) ...
       const activeSavings = savings.filter(s => new Date(calculateMaturityDate(s.startDate, s.term)) > new Date());
       const totalDaily = activeSavings.reduce((sum, s) => sum + calculateDailyInterest(s.amount, s.interestRate), 0);
       const perSecond = totalDaily / (24 * 3600);
@@ -271,8 +298,6 @@
             : '0.00 VND';
     }
 
-    // --- Hàm mới: Vẽ Biểu đồ tổng hợp ---
-
     function renderCharts() {
         if (bankChartInstance) bankChartInstance.destroy();
         if (termChartInstance) termChartInstance.destroy();
@@ -297,14 +322,7 @@
                 datasets: [{
                     label: 'Số tiền gửi (VND)',
                     data: bankAmounts,
-                    backgroundColor: [
-                        '#3b82f6', // Blue-500
-                        '#10b981', // Emerald-500
-                        '#f59e0b', // Amber-500
-                        '#ef4444', // Red-500
-                        '#8b5cf6', // Violet-500
-                        '#06b6d4', // Cyan-500
-                    ],
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
                 }]
             },
             options: {
@@ -346,7 +364,7 @@
                 datasets: [{
                     label: 'Tổng Gốc theo Kỳ hạn (VND)',
                     data: termAmounts,
-                    backgroundColor: '#059669', // Emerald-600
+                    backgroundColor: '#059669',
                 }]
             },
             options: {
@@ -375,7 +393,8 @@
         });
     }
 
-    // --- Logic Form và DOM (Cập nhật renderTable) ---
+
+    // --- Logic Form và DOM ---
 
     function openPopup(index = null) {
       editingIndex = index;
@@ -427,7 +446,8 @@
         accountName: accountName.value.trim(),
         amount: parseFloat(amount.value),
         bank: bank.value.trim(),
-        startDate: startDate.value,
+        // Ngày từ input type="date" đã là YYYY-MM-DD, không cần convert
+        startDate: startDate.value, 
         term: parseInt(term.value),
         interestRate: parseFloat(interestRate.value),
         interestType: interestType.value,
@@ -453,9 +473,6 @@
       }
     }
 
-    /**
-     * Cập nhật hàm renderTable để sử dụng formatDate và tinh chỉnh CSS.
-     */
     function renderTable() {
       const tbody = document.getElementById('savingsTable');
       const noDataMsg = document.getElementById('noDataMessage');
@@ -463,7 +480,7 @@
       
       let displaySavings = [...savings];
 
-      // ... (Logic Lọc và Sắp xếp giữ nguyên) ...
+      // Logic Lọc và Sắp xếp
       const filterStatus = document.getElementById('filterStatus').value;
       const today = new Date().toISOString().split('T')[0];
 
@@ -493,43 +510,50 @@
           noDataMsg.classList.add('hidden');
       }
 
-      // --- HIỂN THỊ DỮ LIỆU (Đã dùng formatDate và CSS mới) ---
+      // HIỂN THỊ DỮ LIỆU
       displaySavings.forEach((s, i) => {
-        const maturity = calculateMaturityDate(s.startDate, s.term);
-        const interest = calculateInterest(s.amount, s.interestRate, s.term);
-        const total = s.amount + interest;
-        const isMatured = maturity <= today;
-        const statusText = isMatured ? 'Đã đáo hạn' : 'Đang hoạt động';
-        const statusClass = isMatured ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
-        const rowClass = isMatured ? 'bg-gray-50' : 'bg-white';
-        const originalIndex = savings.findIndex(item => item === s); 
+        try {
+            const maturity = calculateMaturityDate(s.startDate, s.term);
+            const interest = calculateInterest(s.amount, s.interestRate, s.term);
+            const total = s.amount + interest;
+            const isMatured = maturity <= today;
+            const statusText = isMatured ? 'Đã đáo hạn' : 'Đang hoạt động';
+            const statusClass = isMatured ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
+            const rowClass = i % 2 === 0 ? 'bg-white' : 'bg-gray-50'; // Phân biệt màu hàng
+            const originalIndex = savings.findIndex(item => item === s); 
+            
+            if (isNaN(total) || !s.accountName || !s.startDate) return;
 
-        tbody.innerHTML += `
-          <tr class="${rowClass} hover:bg-gray-100 transition duration-150 border-t border-gray-100">
-            <td class="p-3 text-left font-medium text-gray-800 border-r border-gray-200">${s.accountName}</td>
-            <td class="p-3 data-cell border-r border-gray-200 font-semibold text-blue-600">${currencyFormatter.format(s.amount)}</td>
-            <td class="p-3 border-r border-gray-200">${s.bank}</td>
-            <td class="p-3 border-r border-gray-200">${formatDate(s.startDate)}</td>
-            <td class="p-3 border-r border-gray-200 font-semibold text-orange-600">${formatDate(maturity)}</td>
-            <td class="p-3 border-r border-gray-200">${s.term}</td>
-            <td class="p-3 data-cell border-r border-gray-200">${s.interestRate.toFixed(2)}%</td>
-            <td class="p-3 data-cell border-r border-gray-200 text-green-700">${numberFormatter.format(interest.toFixed(0))}</td>
-            <td class="p-3 data-cell border-r border-gray-200 font-extrabold text-blue-700">${currencyFormatter.format(total.toFixed(0))}</td>
-            <td class="p-3 border-r border-gray-200"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${statusText}</span></td>
-            <td class="p-3 space-x-1 whitespace-nowrap action-cell">
-              <button onclick="openPopup(${originalIndex})" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-xs">Sửa</button>
-              <button onclick="deleteSavings(${originalIndex})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs">Xóa</button>
-            </td>
-          </tr>`;
+            tbody.innerHTML += `
+            <tr class="${rowClass} hover:bg-gray-100 transition duration-150 border-t border-gray-100">
+                <td class="p-3 text-left font-medium text-gray-800 border-r border-gray-200">${s.accountName}</td>
+                <td class="p-3 data-cell border-r border-gray-200 font-semibold text-blue-600">${currencyFormatter.format(s.amount)}</td>
+                <td class="p-3 border-r border-gray-200">${s.bank}</td>
+                <td class="p-3 border-r border-gray-200">${formatDate(s.startDate)}</td>
+                <td class="p-3 border-r border-gray-200 font-semibold text-orange-600">${formatDate(maturity)}</td>
+                <td class="p-3 border-r border-gray-200">${s.term}</td>
+                <td class="p-3 data-cell border-r border-gray-200">${s.interestRate.toFixed(2)}%</td>
+                <td class="p-3 data-cell border-r border-gray-200 text-green-700">${numberFormatter.format(interest.toFixed(0))}</td>
+                <td class="p-3 data-cell border-r border-gray-200 font-extrabold text-blue-700">${currencyFormatter.format(total.toFixed(0))}</td>
+                <td class="p-3 border-r border-gray-200"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${statusText}</span></td>
+                <td class="p-3 space-x-1 whitespace-nowrap action-cell">
+                <button onclick="openPopup(${originalIndex})" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-xs">Sửa</button>
+                <button onclick="deleteSavings(${originalIndex})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs">Xóa</button>
+                </td>
+            </tr>`;
+        } catch (error) {
+            console.error(`Lỗi khi xử lý sổ tại index ${i} (có thể do dữ liệu ngày tháng không hợp lệ):`, s, error);
+        }
       });
     }
 
-    // --- CSV Import/Export (Giữ nguyên) ---
+    // --- CSV Import/Export ---
+
     function downloadSampleCSV() {
-      // ... (Hàm giữ nguyên) ...
       const rows = [
+        // Lưu ý: Đã đổi startDate trong mẫu thành DD/MM/YYYY để tương thích
         ['accountName','amount','bank','startDate','term','interestRate','interestType','renewalType'],
-        ['So Tieu Dung',10000000,'Vietcombank','2025-01-01',6,5.5,'end','principalAndInterest']
+        ['So Tieu Dung',10000000,'Vietcombank','01/01/2025',6,5.5,'end','principalAndInterest']
       ];
       const csv = rows.map(r => r.join(',')).join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -539,8 +563,10 @@
       a.click();
     }
 
+    /**
+     * Cập nhật: Áp dụng convertDateToISO cho startDate khi nhập từ CSV.
+     */
     function importFromCSV(e) {
-      // ... (Hàm giữ nguyên) ...
       const file = e.target.files[0];
       if (!file) return;
 
@@ -556,17 +582,24 @@
           
           const [accountName, amount, bank, startDate, term, interestRate, interestType, renewalType] = values;
           
-          const parsedAmount = parseFloat(amount);
-          const parsedTerm = parseInt(term);
-          const parsedRate = parseFloat(interestRate);
+          try {
+            const parsedAmount = parseFloat(amount);
+            const parsedTerm = parseInt(term);
+            const parsedRate = parseFloat(interestRate);
+            
+            // *** Áp dụng hàm chuyển đổi ngày ở đây ***
+            const formattedStartDate = convertDateToISO(startDate); 
 
-          if (accountName && parsedAmount && parsedTerm && parsedRate) {
-             newSavings.push({
-                accountName, amount: parsedAmount, bank, startDate,
-                term: parsedTerm, interestRate: parsedRate,
-                interestType: interestType || 'end', 
-                renewalType: renewalType || 'principal'
-             });
+            if (accountName && parsedAmount && parsedTerm && parsedRate) {
+                newSavings.push({
+                    accountName, amount: parsedAmount, bank, startDate: formattedStartDate, 
+                    term: parsedTerm, interestRate: parsedRate,
+                    interestType: interestType || 'end', 
+                    renewalType: renewalType || 'principal'
+                });
+            }
+          } catch (error) {
+              console.warn(`Bỏ qua dòng CSV thứ ${i+1} do lỗi định dạng: ${startDate} không phải là ngày hợp lệ.`);
           }
         }
         
@@ -574,7 +607,7 @@
         saveToLocalStorage();
         renderTable();
         updateRunningInterest();
-        renderCharts(); // Cập nhật biểu đồ sau khi nhập
+        renderCharts(); 
         alert(`Đã nhập thành công ${newSavings.length} sổ tiết kiệm!`);
         e.target.value = '';
       };
@@ -582,7 +615,6 @@
     }
 
     function exportToCSV() {
-      // ... (Hàm giữ nguyên) ...
       const rows = [['accountName','amount','bank','startDate','term','interestRate','interestType','renewalType'],
         ...savings.map(s => [s.accountName, s.amount, s.bank, s.startDate, s.term, s.interestRate, s.interestType, s.renewalType].join(','))
       ];
@@ -599,7 +631,7 @@
         renderTable();
         updateDashboard();
         updateRunningInterest();
-        renderCharts(); // Vẽ biểu đồ lần đầu
+        renderCharts();
     };
 
   </script>
