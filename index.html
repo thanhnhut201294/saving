@@ -5,22 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quản lý Sổ Tiết Kiệm Nâng Cao</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
-    /* Ẩn thanh cuộn số trên input type="number" cho Chrome/Safari/Opera */
     .no-spinners::-webkit-outer-spin-button,
     .no-spinners::-webkit-inner-spin-button {
       -webkit-appearance: none;
       margin: 0;
     }
-    /* Ẩn thanh cuộn số trên input type="number" cho Firefox */
     .no-spinners {
       -moz-appearance: textfield;
     }
+    /* Tinh chỉnh cột Hành động cho bảng */
+    .action-cell {
+        min-width: 120px;
+    }
+    /* Làm cho các ô số liệu đẹp hơn */
+    .data-cell {
+        text-align: right;
+    }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
-  <div class="w-full max-w-6xl bg-white shadow-xl rounded-lg p-8">
-    <h1 class="text-3xl font-extrabold text-center text-blue-700 mb-8">💰 Quản lý Sổ Tiết Kiệm Nâng Cao</h1>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+  <div class="w-full max-w-6xl bg-white shadow-2xl rounded-xl p-8">
+    <h1 class="text-3xl font-extrabold text-center text-blue-800 mb-8">💰 Quản lý Sổ Tiết Kiệm Nâng Cao</h1>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 bg-blue-50 rounded-lg shadow-inner">
       <div class="text-center p-3 bg-white rounded-md shadow">
@@ -36,6 +43,20 @@
         <p class="text-2xl font-extrabold text-yellow-600" id="runningInterest">0.00 VND</p>
       </div>
     </div>
+
+    <div class="mb-8 p-6 bg-gray-100 rounded-xl shadow-lg">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">📈 Phân Tích Tổng Hợp</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-lg font-medium text-center mb-3">Phân bổ Tiền Gửi theo Ngân hàng</h3>
+                <canvas id="bankChart"></canvas>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-lg font-medium text-center mb-3">Tổng Gốc theo Kỳ hạn</h3>
+                <canvas id="termChart"></canvas>
+            </div>
+        </div>
+    </div>
     
     <div class="flex flex-wrap justify-between items-center mb-6 space-y-3 sm:space-y-0">
       <button onclick="openPopup()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150 shadow-md">
@@ -49,14 +70,13 @@
           <input type="file" id="importCSV" accept=".csv" class="hidden" onchange="importFromCSV(event)">
         </label>
         <button onclick="exportToCSV()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 text-sm">Xuất CSV</button>
-        
         <button onclick="clearAllData()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 text-sm font-medium transition duration-150">
           🗑️ Xóa Bộ Nhớ
         </button>
       </div>
     </div>
     
-    <div class="flex flex-wrap items-center space-x-4 mb-6">
+    <div class="flex flex-wrap items-center space-x-4 mb-6 p-3 bg-gray-100 rounded-lg">
         <div class="flex items-center space-x-2">
             <label for="filterStatus" class="text-gray-600 text-sm font-medium">Lọc theo:</label>
             <select id="filterStatus" onchange="renderTable()" class="border p-2 rounded text-sm">
@@ -77,21 +97,21 @@
 
     <div>
       <h2 class="text-xl font-semibold mb-3 text-gray-700">📘 Danh Sách Sổ Tiết Kiệm</h2>
-      <div class="overflow-x-auto border rounded-lg shadow-sm">
+      <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-md">
         <table class="w-full border-collapse text-sm">
-          <thead>
-            <tr class="bg-gray-200 uppercase text-xs text-gray-600">
-              <th class="border p-3 text-left">Tên TK</th>
-              <th class="border p-3">Số Tiền (VND)</th>
-              <th class="border p-3">Ngân Hàng</th>
-              <th class="border p-3">Ngày Gửi</th>
-              <th class="border p-3">Ngày Đáo Hạn</th>
-              <th class="border p-3">Kỳ Hạn (Tháng)</th>
-              <th class="border p-3">Lãi Suất (%/Năm)</th>
-              <th class="border p-3">Lãi Dự Kiến (VND)</th>
-              <th class="border p-3">Tổng Gốc + Lãi</th>
-              <th class="border p-3">Trạng Thái</th>
-              <th class="border p-3">Hành Động</th>
+          <thead class="bg-gray-100">
+            <tr class="uppercase text-xs text-gray-600">
+              <th class="p-3 text-left font-bold border-r border-gray-200">Tên TK</th>
+              <th class="p-3 font-bold border-r border-gray-200 data-cell">Số Tiền (VND)</th>
+              <th class="p-3 font-bold border-r border-gray-200">Ngân Hàng</th>
+              <th class="p-3 font-bold border-r border-gray-200">Ngày Gửi</th>
+              <th class="p-3 font-bold border-r border-gray-200">Ngày Đáo Hạn</th>
+              <th class="p-3 font-bold border-r border-gray-200">Kỳ Hạn (Tháng)</th>
+              <th class="p-3 font-bold border-r border-gray-200 data-cell">Lãi Suất (%/Năm)</th>
+              <th class="p-3 font-bold border-r border-gray-200 data-cell">Lãi Dự Kiến (VND)</th>
+              <th class="p-3 font-bold border-r border-gray-200 data-cell">Tổng Gốc + Lãi</th>
+              <th class="p-3 font-bold border-r border-gray-200">Trạng Thái</th>
+              <th class="p-3 font-bold action-cell">Hành Động</th>
             </tr>
           </thead>
           <tbody id="savingsTable"></tbody>
@@ -145,37 +165,43 @@
     let accumulatedInterestData = JSON.parse(localStorage.getItem('accumulatedInterestData')) || { value: 0, lastUpdated: Date.now() };
     let editingIndex = null;
     let interestInterval;
+    let bankChartInstance = null;
+    let termChartInstance = null;
 
     const currencyFormatter = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
     const numberFormatter = new Intl.NumberFormat('vi-VN');
 
-    // --- 1. Logic Lưu trữ và Tính toán Cốt lõi ---
+    // --- Hàm mới: Định dạng ngày (YYYY-MM-DD -> dd/mm/yyyy) ---
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        // Đảm bảo định dạng là YYYY-MM-DD
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+    }
+
+    // --- Logic Lưu trữ và Tính toán Cốt lõi (Giữ nguyên) ---
 
     function saveToLocalStorage() {
       localStorage.setItem('savings', JSON.stringify(savings));
       localStorage.setItem('accumulatedInterestData', JSON.stringify(accumulatedInterestData));
       updateDashboard();
+      renderCharts(); // Cập nhật biểu đồ khi dữ liệu thay đổi
     }
 
-    /**
-     * Hàm mới: Xóa toàn bộ dữ liệu lưu trong localStorage
-     */
     function clearAllData() {
         if (confirm('CẢNH BÁO: Thao tác này sẽ xóa TẤT CẢ sổ tiết kiệm và lãi lũy kế đã lưu. Bạn có chắc chắn muốn tiếp tục không?')) {
             localStorage.removeItem('savings');
             localStorage.removeItem('accumulatedInterestData');
             
-            // Khởi tạo lại biến trong bộ nhớ
             savings = [];
             accumulatedInterestData = { value: 0, lastUpdated: Date.now() };
             
-            // Dừng cập nhật lãi suất
             clearInterval(interestInterval);
             
-            // Cập nhật giao diện
             renderTable();
             updateDashboard();
             document.getElementById('runningInterest').textContent = '0.00 VND';
+            renderCharts(); // Xóa biểu đồ
 
             alert('Đã xóa thành công tất cả dữ liệu đã lưu trữ.');
         }
@@ -199,7 +225,7 @@
       return amount * (rate / 100 / 365);
     }
     
-    // --- 2. Logic Dashboard và Lãi Đang Chạy ---
+    // --- Logic Dashboard và Lãi Đang Chạy (Giữ nguyên) ---
 
     function updateDashboard() {
         if (savings.length === 0) {
@@ -207,7 +233,7 @@
             document.getElementById('averageInterestRate').textContent = '0.00%';
             return;
         }
-
+        // ... (Logic Dashboard giữ nguyên) ...
         const totalPrincipal = savings.reduce((sum, s) => sum + s.amount, 0);
         const weightedInterestRate = savings.reduce((sum, s) => sum + s.amount * s.interestRate, 0);
         const averageRate = (weightedInterestRate / totalPrincipal).toFixed(2);
@@ -217,6 +243,7 @@
     }
 
     function updateRunningInterest() {
+      // ... (Logic Lãi Đang Chạy giữ nguyên) ...
       const activeSavings = savings.filter(s => new Date(calculateMaturityDate(s.startDate, s.term)) > new Date());
       const totalDaily = activeSavings.reduce((sum, s) => sum + calculateDailyInterest(s.amount, s.interestRate), 0);
       const perSecond = totalDaily / (24 * 3600);
@@ -244,7 +271,111 @@
             : '0.00 VND';
     }
 
-    // --- 3. Logic Form và DOM ---
+    // --- Hàm mới: Vẽ Biểu đồ tổng hợp ---
+
+    function renderCharts() {
+        if (bankChartInstance) bankChartInstance.destroy();
+        if (termChartInstance) termChartInstance.destroy();
+
+        if (savings.length === 0) return;
+
+        // 1. Phân tích dữ liệu cho Biểu đồ Ngân hàng (Doughnut Chart)
+        const bankData = savings.reduce((acc, s) => {
+            const bankName = s.bank || 'Khác';
+            acc[bankName] = (acc[bankName] || 0) + s.amount;
+            return acc;
+        }, {});
+
+        const bankLabels = Object.keys(bankData);
+        const bankAmounts = Object.values(bankData);
+
+        const ctxBank = document.getElementById('bankChart').getContext('2d');
+        bankChartInstance = new Chart(ctxBank, {
+            type: 'doughnut',
+            data: {
+                labels: bankLabels,
+                datasets: [{
+                    label: 'Số tiền gửi (VND)',
+                    data: bankAmounts,
+                    backgroundColor: [
+                        '#3b82f6', // Blue-500
+                        '#10b981', // Emerald-500
+                        '#f59e0b', // Amber-500
+                        '#ef4444', // Red-500
+                        '#8b5cf6', // Violet-500
+                        '#06b6d4', // Cyan-500
+                    ],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'right' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) label += ': ';
+                                if (context.parsed !== null) {
+                                    label += currencyFormatter.format(context.parsed);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+
+        // 2. Phân tích dữ liệu cho Biểu đồ Kỳ hạn (Bar Chart)
+        const termData = savings.reduce((acc, s) => {
+            const termLabel = `${s.term} tháng`;
+            acc[termLabel] = (acc[termLabel] || 0) + s.amount;
+            return acc;
+        }, {});
+        
+        const termLabels = Object.keys(termData);
+        const termAmounts = Object.values(termData);
+
+        const ctxTerm = document.getElementById('termChart').getContext('2d');
+        termChartInstance = new Chart(ctxTerm, {
+            type: 'bar',
+            data: {
+                labels: termLabels,
+                datasets: [{
+                    label: 'Tổng Gốc theo Kỳ hạn (VND)',
+                    data: termAmounts,
+                    backgroundColor: '#059669', // Emerald-600
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return numberFormatter.format(value / 1000000) + ' Tr';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return currencyFormatter.format(context.parsed.y);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // --- Logic Form và DOM (Cập nhật renderTable) ---
 
     function openPopup(index = null) {
       editingIndex = index;
@@ -322,6 +453,9 @@
       }
     }
 
+    /**
+     * Cập nhật hàm renderTable để sử dụng formatDate và tinh chỉnh CSS.
+     */
     function renderTable() {
       const tbody = document.getElementById('savingsTable');
       const noDataMsg = document.getElementById('noDataMessage');
@@ -329,7 +463,7 @@
       
       let displaySavings = [...savings];
 
-      // --- ÁP DỤNG LỌC ---
+      // ... (Logic Lọc và Sắp xếp giữ nguyên) ...
       const filterStatus = document.getElementById('filterStatus').value;
       const today = new Date().toISOString().split('T')[0];
 
@@ -341,7 +475,6 @@
           });
       }
 
-      // --- ÁP DỤNG SẮP XẾP ---
       const sortBy = document.getElementById('sortBy').value;
       displaySavings.sort((a, b) => {
           const maturityA = calculateMaturityDate(a.startDate, a.term);
@@ -360,7 +493,7 @@
           noDataMsg.classList.add('hidden');
       }
 
-      // --- HIỂN THỊ DỮ LIỆU ---
+      // --- HIỂN THỊ DỮ LIỆU (Đã dùng formatDate và CSS mới) ---
       displaySavings.forEach((s, i) => {
         const maturity = calculateMaturityDate(s.startDate, s.term);
         const interest = calculateInterest(s.amount, s.interestRate, s.term);
@@ -368,22 +501,22 @@
         const isMatured = maturity <= today;
         const statusText = isMatured ? 'Đã đáo hạn' : 'Đang hoạt động';
         const statusClass = isMatured ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
-
+        const rowClass = isMatured ? 'bg-gray-50' : 'bg-white';
         const originalIndex = savings.findIndex(item => item === s); 
 
         tbody.innerHTML += `
-          <tr class="hover:bg-gray-50 transition duration-150">
-            <td class="border p-3 text-left font-medium text-gray-800">${s.accountName}</td>
-            <td class="border p-3 text-right">${currencyFormatter.format(s.amount)}</td>
-            <td class="border p-3">${s.bank}</td>
-            <td class="border p-3">${s.startDate}</td>
-            <td class="border p-3 font-semibold text-orange-600">${maturity}</td>
-            <td class="border p-3">${s.term}</td>
-            <td class="border p-3 text-right">${s.interestRate}%</td>
-            <td class="border p-3 text-right text-green-700">${numberFormatter.format(interest.toFixed(0))}</td>
-            <td class="border p-3 text-right font-extrabold text-blue-700">${currencyFormatter.format(total.toFixed(0))}</td>
-            <td class="border p-3"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${statusText}</span></td>
-            <td class="border p-3 space-x-1 whitespace-nowrap">
+          <tr class="${rowClass} hover:bg-gray-100 transition duration-150 border-t border-gray-100">
+            <td class="p-3 text-left font-medium text-gray-800 border-r border-gray-200">${s.accountName}</td>
+            <td class="p-3 data-cell border-r border-gray-200 font-semibold text-blue-600">${currencyFormatter.format(s.amount)}</td>
+            <td class="p-3 border-r border-gray-200">${s.bank}</td>
+            <td class="p-3 border-r border-gray-200">${formatDate(s.startDate)}</td>
+            <td class="p-3 border-r border-gray-200 font-semibold text-orange-600">${formatDate(maturity)}</td>
+            <td class="p-3 border-r border-gray-200">${s.term}</td>
+            <td class="p-3 data-cell border-r border-gray-200">${s.interestRate.toFixed(2)}%</td>
+            <td class="p-3 data-cell border-r border-gray-200 text-green-700">${numberFormatter.format(interest.toFixed(0))}</td>
+            <td class="p-3 data-cell border-r border-gray-200 font-extrabold text-blue-700">${currencyFormatter.format(total.toFixed(0))}</td>
+            <td class="p-3 border-r border-gray-200"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${statusText}</span></td>
+            <td class="p-3 space-x-1 whitespace-nowrap action-cell">
               <button onclick="openPopup(${originalIndex})" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-xs">Sửa</button>
               <button onclick="deleteSavings(${originalIndex})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs">Xóa</button>
             </td>
@@ -391,9 +524,9 @@
       });
     }
 
-    // --- 4. CSV Import/Export (Giữ nguyên) ---
-
+    // --- CSV Import/Export (Giữ nguyên) ---
     function downloadSampleCSV() {
+      // ... (Hàm giữ nguyên) ...
       const rows = [
         ['accountName','amount','bank','startDate','term','interestRate','interestType','renewalType'],
         ['So Tieu Dung',10000000,'Vietcombank','2025-01-01',6,5.5,'end','principalAndInterest']
@@ -407,6 +540,7 @@
     }
 
     function importFromCSV(e) {
+      // ... (Hàm giữ nguyên) ...
       const file = e.target.files[0];
       if (!file) return;
 
@@ -440,6 +574,7 @@
         saveToLocalStorage();
         renderTable();
         updateRunningInterest();
+        renderCharts(); // Cập nhật biểu đồ sau khi nhập
         alert(`Đã nhập thành công ${newSavings.length} sổ tiết kiệm!`);
         e.target.value = '';
       };
@@ -447,6 +582,7 @@
     }
 
     function exportToCSV() {
+      // ... (Hàm giữ nguyên) ...
       const rows = [['accountName','amount','bank','startDate','term','interestRate','interestType','renewalType'],
         ...savings.map(s => [s.accountName, s.amount, s.bank, s.startDate, s.term, s.interestRate, s.interestType, s.renewalType].join(','))
       ];
@@ -463,6 +599,7 @@
         renderTable();
         updateDashboard();
         updateRunningInterest();
+        renderCharts(); // Vẽ biểu đồ lần đầu
     };
 
   </script>
