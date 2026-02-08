@@ -3,144 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Intelligence | Pro Dashboard</title>
+    <title>Sổ Tiết Kiệm | Smart Finance Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.3s; }
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
-        .hidden-money { filter: blur(8px); pointer-events: none; user-select: none; }
-        .tab-active { border-bottom: 2px solid #4f46e5; color: #4f46e5; }
-        @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .live-dot { animation: pulse-slow 2s infinite; }
+        @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Lexend', sans-serif; background-color: #f7fcf9; color: #1e3a2d; }
+        .neumorphic {
+            background: #f7fcf9;
+            border-radius: 28px;
+            box-shadow: 8px 8px 16px rgba(184, 196, 188, 0.2), -8px -8px 16px rgba(255, 255, 255, 0.8);
+        }
+        .neumorphic-inset {
+            background: #e8f5ec;
+            border-radius: 16px;
+            box-shadow: inset 2px 2px 5px rgba(184, 196, 188, 0.3), inset -2px -2px 5px rgba(255, 255, 255, 0.7);
+        }
+        .val-blur { filter: blur(6px); transition: filter 0.3s ease-in-out; }
+        .val-blur.show-value { filter: blur(0); }
+        .progress-bar { height: 6px; border-radius: 9999px; background-color: #e0f2f7; overflow: hidden; }
+        .progress-fill { height: 100%; background-color: #34d399; border-radius: 9999px; transition: width 0.5s ease-out; }
+        .accent-green { color: #10b981; }
+        .bg-accent-green-light { background-color: #e0fbf2; }
+
+        /* Custom scrollbar for better look */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f7fcf9; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #a7d9b9; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #34d399; }
     </style>
 </head>
-<body class="bg-[#f8fafc] text-slate-900">
+<body class="bg-[#f7fcf9] text-[#1e3a2d] antialiased">
 
-    <div id="auth-layer" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#0f172a]">
-        <div class="bg-white p-10 rounded-[2rem] shadow-2xl w-full max-w-sm text-center">
-            <div class="inline-flex p-4 bg-indigo-50 text-indigo-600 rounded-2xl mb-6">
-                <i data-lucide="fingerprint" class="w-10 h-10"></i>
+    <div id="auth-layer" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#f7fcf9]">
+        <div class="neumorphic p-10 rounded-[2.5rem] w-full max-w-sm text-center mx-4">
+            <div class="inline-flex p-4 bg-emerald-100 text-emerald-600 rounded-2xl mb-6">
+                <i data-lucide="shield-check" class="w-10 h-10"></i>
             </div>
-            <h1 class="text-2xl font-bold text-slate-800 mb-2">Xin chào, Vinh</h1>
-            <p class="text-slate-500 mb-8 italic">Vui lòng xác thực mã cá nhân</p>
-            <input type="password" id="entry-pass" class="w-full px-4 py-4 rounded-2xl border-2 border-slate-100 focus:border-indigo-500 outline-none mb-6 text-center text-3xl tracking-[1em]" placeholder="••••••">
-            <button onclick="handleLogin()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg hover:shadow-indigo-200 transition-all active:scale-95">Mở khóa Dashboard</button>
-            <p id="auth-err" class="text-red-500 font-medium mt-4 hidden">Mật khẩu không đúng!</p>
+            <h1 class="text-3xl font-bold text-emerald-900 mb-2">Quản lý Tài chính</h1>
+            <p class="text-slate-500 mb-8 italic">Vui lòng nhập mã bảo mật của bạn</p>
+            <input type="password" id="entry-pass" class="w-full px-5 py-4 rounded-2xl border border-emerald-200 focus:border-emerald-500 outline-none mb-6 text-center text-3xl tracking-wider text-emerald-700" placeholder="••••••">
+            <button onclick="handleLogin()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-200">Truy cập Dashboard</button>
+            <p id="auth-err" class="text-red-500 font-medium mt-4 hidden">Mã bảo mật không đúng!</p>
         </div>
     </div>
 
-    <div id="dashboard" class="hidden opacity-0 transition-all duration-1000">
-        <header class="glass sticky top-0 z-50 px-8 py-4 flex justify-between items-center">
+    <div id="dashboard" class="hidden opacity-0 transition-opacity duration-1000">
+        <header class="sticky top-0 z-50 bg-[#f7fcf9]/80 backdrop-blur-md px-8 py-5 flex justify-between items-center border-b border-slate-100 shadow-sm">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                <div class="w-11 h-11 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-md">
                     <i data-lucide="gem" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight">Vinh's Wealth</h1>
-                    <div class="flex items-center gap-1.5 text-[10px] text-emerald-500 font-bold uppercase tracking-wider">
-                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full live-dot"></span> Hệ thống đang kết nối
+                    <h1 class="font-bold text-xl leading-tight text-emerald-900">WealthFlow</h1>
+                    <div class="flex items-center gap-2 text-[11px] text-emerald-500 font-medium tracking-wide">
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Dữ liệu trực tuyến
                     </div>
                 </div>
             </div>
-            <div class="flex items-center gap-4">
-                <button onclick="togglePrivacy()" class="p-2.5 hover:bg-slate-100 rounded-xl transition-colors text-slate-600">
-                    <i data-lucide="eye" id="p-icon"></i>
+            <div class="flex items-center gap-5">
+                <button onclick="togglePrivacy()" class="p-2.5 rounded-full hover:bg-emerald-50 transition-colors text-slate-600">
+                    <i data-lucide="eye" id="p-icon" class="w-6 h-6"></i>
                 </button>
-                <div class="h-8 w-[1px] bg-slate-200"></div>
-                <button onclick="location.reload()" class="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-600 transition-all">
-                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Làm mới
+                <button onclick="location.reload()" class="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Cập nhật
                 </button>
             </div>
         </header>
 
-        <main class="max-w-7xl mx-auto p-8">
+        <main class="max-w-7xl mx-auto px-8 py-10">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden group">
-                    <div class="absolute right-[-10px] top-[-10px] opacity-[0.03] group-hover:scale-110 transition-transform">
-                        <i data-lucide="piggy-bank" class="w-32 h-32 text-indigo-900"></i>
-                    </div>
-                    <p class="text-slate-500 text-sm font-medium mb-2 uppercase tracking-tight">Vốn gốc hiện tại</p>
-                    <h2 id="total-val" class="text-3xl font-extrabold text-slate-800 val-blur">0đ</h2>
+                <div class="neumorphic p-7 rounded-[2rem] flex flex-col justify-between h-40">
+                    <p class="text-slate-500 text-sm font-medium uppercase tracking-wider">Tổng vốn hiện có</p>
+                    <h2 id="total-principal" class="text-4xl font-extrabold text-emerald-900 val-blur">0đ</h2>
                 </div>
-                <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100">
-                    <p class="text-slate-500 text-sm font-medium mb-2 uppercase tracking-tight italic flex items-center gap-2">
-                        <i data-lucide="trending-up" class="w-4 h-4 text-emerald-500"></i> Lãi tích lũy thời gian thực
-                    </p>
-                    <h2 id="live-interest" class="text-3xl font-extrabold text-emerald-600 val-blur">0đ</h2>
-                    <p class="text-[10px] text-slate-400 mt-2 font-mono uppercase tracking-widest">Tiền của bạn đang tự đẻ ra mỗi giây</p>
+                <div class="neumorphic p-7 rounded-[2rem] flex flex-col justify-between h-40">
+                    <p class="text-slate-500 text-sm font-medium uppercase tracking-wider">Lãi đã phát sinh (Live)</p>
+                    <h2 id="live-interest" class="text-4xl font-extrabold accent-green val-blur">0đ</h2>
                 </div>
-                <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100">
-                    <p class="text-slate-500 text-sm font-medium mb-2 uppercase tracking-tight">Lợi nhuận dự kiến cuối kỳ</p>
-                    <h2 id="final-interest" class="text-3xl font-extrabold text-indigo-600 val-blur">0đ</h2>
+                <div class="neumorphic p-7 rounded-[2rem] flex flex-col justify-between h-40">
+                    <p class="text-slate-500 text-sm font-medium uppercase tracking-wider">Lãi dự kiến cuối kỳ</p>
+                    <h2 id="final-interest" class="text-4xl font-extrabold text-indigo-600 val-blur">0đ</h2>
                 </div>
-                <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-slate-100 border-l-4 border-l-orange-500">
-                    <p class="text-slate-500 text-sm font-medium mb-2 uppercase tracking-tight text-orange-600">Trạng thái rủi ro</p>
-                    <div id="risk-status" class="text-lg font-bold text-slate-800">Đang phân tích...</div>
+                <div class="neumorphic p-7 rounded-[2rem] flex flex-col justify-between h-40">
+                    <p class="text-slate-500 text-sm font-medium uppercase tracking-wider">Đáo hạn < 30 ngày</p>
+                    <h2 id="upcoming-count" class="text-4xl font-extrabold text-orange-600">0 sổ</h2>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
-                <div class="lg:col-span-4 bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h3 class="font-bold text-slate-800 mb-8 flex justify-between">
-                        <span>Phân bổ tài sản</span>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+                <div class="lg:col-span-1 neumorphic p-8 rounded-[2rem]">
+                    <h3 class="font-bold text-slate-800 mb-8 text-xl flex items-center justify-between">
+                        <span>Phân bổ theo Ngân hàng</span>
                         <i data-lucide="pie-chart" class="text-slate-300"></i>
                     </h3>
                     <div class="relative h-[280px]">
-                        <canvas id="distChart"></canvas>
+                        <canvas id="bankDistChart"></canvas>
+                        <div id="portfolio-risk" class="absolute inset-0 flex items-center justify-center text-center font-bold text-sm"></div>
                     </div>
                 </div>
-                <div class="lg:col-span-8 bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h3 class="font-bold text-slate-800 mb-8 flex justify-between">
-                        <span>Dòng tiền đáo hạn 12 tháng</span>
-                        <i data-lucide="calendar" class="text-slate-300"></i>
+                <div class="lg:col-span-2 neumorphic p-8 rounded-[2rem]">
+                    <h3 class="font-bold text-slate-800 mb-8 text-xl flex items-center justify-between">
+                        <span>Dự báo dòng tiền Lãi về theo tháng</span>
+                        <i data-lucide="bar-chart-2" class="text-slate-300"></i>
                     </h3>
                     <div class="h-[280px]">
-                        <canvas id="cashflowChart"></canvas>
+                        <canvas id="interestCashflowChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                <div class="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-                    <h3 class="font-bold text-slate-800 tracking-tight">Quản lý danh sách sổ thông minh</h3>
-                    <div class="flex gap-2">
-                        <span class="bg-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-200">Tổng: <span id="row-count">0</span> sổ</span>
+            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
+                <div class="neumorphic p-7 rounded-[2rem] lg:col-span-1 xl:col-span-1 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-800 mb-5 text-xl flex items-center gap-2">
+                            <i data-lucide="line-chart" class="w-5 h-5 text-emerald-600"></i>
+                            Dự báo & Phân tích
+                        </h3>
+                        <div class="grid grid-cols-2 gap-y-4 text-sm">
+                            <p class="col-span-2 text-slate-500 mb-2 font-semibold">Tài sản dự kiến:</p>
+                            <p class="text-slate-600">Cuối 2025:</p>
+                            <p id="forecast-2025" class="font-bold text-emerald-600 val-blur text-right">0đ</p>
+                            <p class="text-slate-600">Cuối 2026:</p>
+                            <p id="forecast-2026" class="font-bold text-emerald-600 val-blur text-right">0đ</p>
+                            <p class="col-span-2 text-slate-500 mt-4 mb-2 font-semibold">Hiệu suất danh mục:</p>
+                            <p class="text-slate-600">Lãi suất TB:</p>
+                            <p id="avg-rate" class="font-bold text-emerald-600 text-right">0%</p>
+                            <p class="text-slate-600">Lãi/ngày (TB):</p>
+                            <p id="avg-daily-interest" class="font-bold text-emerald-600 val-blur text-right">0đ</p>
+                        </div>
                     </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="text-slate-400 text-[11px] uppercase tracking-[0.2em] font-bold border-b border-slate-50">
-                                <th class="px-8 py-5">Tài khoản & Ngân hàng</th>
-                                <th class="px-8 py-5 text-right">Số vốn gửi</th>
-                                <th class="px-8 py-5">Lãi suất</th>
-                                <th class="px-8 py-5">Tiến độ & Countdown</th>
-                                <th class="px-8 py-5 text-center">Thanh khoản</th>
-                            </tr>
-                        </thead>
-                        <tbody id="smart-table" class="divide-y divide-slate-50"></tbody>
-                    </table>
+
+                <div class="lg:col-span-2 xl:col-span-2 neumorphic p-7 rounded-[2rem]">
+                    <h3 class="font-bold text-slate-800 mb-8 text-xl flex items-center justify-between">
+                        <span>Danh sách Sổ tiết kiệm</span>
+                        <i data-lucide="credit-card" class="text-slate-300"></i>
+                    </h3>
+                    <div id="savings-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[600px] overflow-y-auto pr-2">
+                        </div>
                 </div>
             </div>
         </main>
     </div>
 
     <script>
-        const CSV_LINK = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_CDz1COjHWcwXRnQKrEpK-sfvGycbt7N4WsaJ71QUWzp2Dwg6sb3_zNVWq3Eq-3mJOa6_Wyj8eLO7/pub?output=csv';
-        const ACCESS_PASS = '062000';
-        let isPrivate = false;
-        let globalData = [];
+        const CONFIG = {
+            CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_CDz1COjHWcwXRnQKrEpK-sfvGycbt7N4WsaJ71QUWzp2Dwg6sb3_zNVWq3Eq-3mJOa6_Wyj8eLO7/pub?output=csv',
+            ACCESS_PASS: '062000',
+            RISK_THRESHOLD: 0.6 // Cảnh báo nếu một ngân hàng chiếm > 60% tổng vốn
+        };
 
+        let isPrivate = false;
+        let allSavingsData = []; // To store parsed CSV data
+        let liveInterestInterval; // For live interest update
+
+        // Utility functions
+        function formatVND(value) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+        }
+
+        function parseDate(dateString) {
+            const [day, month, year] = dateString.split('/');
+            return new Date(year, month - 1, day);
+        }
+
+        function addMonths(date, months) {
+            const d = new Date(date);
+            d.setMonth(d.getMonth() + months);
+            return d;
+        }
+
+        // Authentication & Privacy
         function handleLogin() {
-            if (document.getElementById('entry-pass').value === ACCESS_PASS) {
+            if (document.getElementById('entry-pass').value === CONFIG.ACCESS_PASS) {
                 document.getElementById('auth-layer').style.display = 'none';
                 document.getElementById('dashboard').classList.remove('hidden');
                 setTimeout(() => document.getElementById('dashboard').classList.add('opacity-100'), 100);
-                loadData();
+                initDashboard();
             } else {
                 document.getElementById('auth-err').classList.remove('hidden');
             }
@@ -148,159 +190,274 @@
 
         function togglePrivacy() {
             isPrivate = !isPrivate;
-            document.querySelectorAll('.val-blur').forEach(el => el.classList.toggle('hidden-money', isPrivate));
+            document.querySelectorAll('.val-blur').forEach(el => {
+                el.classList.toggle('show-value', !isPrivate);
+            });
             document.getElementById('p-icon').setAttribute('data-lucide', isPrivate ? 'eye-off' : 'eye');
             lucide.createIcons();
         }
 
-        function formatVN(val) {
-            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-        }
-
-        function strToDate(s) {
-            const [d, m, y] = s.split('/');
-            return new Date(y, m - 1, d);
-        }
-
-        async function loadData() {
-            lucide.createIcons();
-            Papa.parse(CSV_LINK, {
+        // Core Dashboard Logic
+        async function initDashboard() {
+            lucide.createIcons(); // Initialize Lucide Icons
+            Papa.parse(CONFIG.CSV_URL, {
                 download: true,
                 header: true,
-                complete: (res) => {
-                    globalData = res.data;
-                    updateDashboard();
-                    setInterval(updateLiveInterest, 1000);
+                skipEmptyLines: true,
+                complete: (results) => {
+                    allSavingsData = results.data.filter(row => row['Trạng thái'] === 'Đang gửi' && row['Số tiền gửi'] && parseFloat(row['Số tiền gửi']) > 0);
+                    renderDashboard(allSavingsData);
+                    liveInterestInterval = setInterval(updateLiveInterest, 1000); // Update live interest every second
+                },
+                error: (error) => {
+                    console.error("Error parsing CSV:", error);
+                    alert("Không thể tải dữ liệu. Vui lòng kiểm tra kết nối hoặc link CSV.");
                 }
             });
         }
 
-        function updateDashboard() {
-            let totalVốn = 0, finalLãi = 0, rateSum = 0, activeCount = 0;
-            const bankDist = {}, monthlyFlow = {}, table = document.getElementById('smart-table');
+        function renderDashboard(data) {
+            let totalPrincipal = 0;
+            let totalFinalInterest = 0;
+            let weightedAvgRate = 0;
+            let upcomingMaturities = 0;
+            let bankDistribution = {}; // For pie chart
+            let interestCashflow = {}; // For bar chart (interest only)
+
             const now = new Date();
+            const cardsContainer = document.getElementById('savings-cards-container');
+            cardsContainer.innerHTML = ''; // Clear previous cards
 
-            globalData.forEach(row => {
-                if (!row['Tên tài khoản'] || row['Trạng thái'] !== 'Đang gửi') return;
-
-                const vốn = parseFloat(row['Số tiền gửi']);
-                const lãiSuất = parseFloat(row['Lãi suất'].replace('%', '')) / 100;
-                const kỳHạn = parseInt(row['Kỳ hạn (tháng)']);
-                const ngàyGửi = strToDate(row['Ngày gửi']);
-                const ngàyĐáoHạn = new Date(new Date(ngàyGửi).setMonth(ngàyGửi.getMonth() + kỳHạn));
-
-                totalVốn += vốn;
-                finalLãi += vốn * lãiSuất * (kỳHạn / 12);
-                rateSum += lãiSuất * vốn;
-                activeCount++;
-
-                bankDist[row['Ngân hàng']] = (bankDist[row['Ngân hàng']] || 0) + vốn;
-                const mKey = `${ngàyĐáoHạn.getMonth() + 1}/${ngàyĐáoHạn.getFullYear()}`;
-                monthlyFlow[mKey] = (monthlyFlow[mKey] || 0) + (vốn + (vốn * lãiSuất * (kỳHạn / 12)));
-
-                // Countdown Logic
-                const totalDays = Math.ceil((ngàyĐáoHạn - ngàyGửi) / 86400000);
-                const daysPassed = Math.ceil((now - ngàyGửi) / 86400000);
-                const progress = Math.min(100, Math.max(0, (daysPassed / totalDays) * 100));
-                const daysLeft = Math.ceil((ngàyĐáoHạn - now) / 86400000);
-
-                const tr = `
-                    <tr class="hover:bg-slate-50 transition-colors group">
-                        <td class="px-8 py-6">
-                            <div class="font-bold text-slate-800">${row['Tên tài khoản']}</div>
-                            <div class="text-xs text-slate-400 font-medium uppercase mt-1">${row['Ngân hàng']}</div>
-                        </td>
-                        <td class="px-8 py-6 text-right font-black text-indigo-600 val-blur">${formatVN(vốn)}</td>
-                        <td class="px-8 py-6">
-                            <span class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg text-xs font-black">${row['Lãi suất']}</span>
-                        </td>
-                        <td class="px-8 py-6">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Đã đi được ${progress.toFixed(0)}% chặng đường</span>
-                                <span class="text-xs font-black ${daysLeft <= 15 ? 'text-red-500 animate-pulse' : 'text-slate-600'}">
-                                    ${daysLeft > 0 ? 'Còn ' + daysLeft + ' ngày' : 'Đã đáo hạn'}
-                                </span>
-                            </div>
-                            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                <div class="bg-indigo-500 h-full rounded-full transition-all duration-1000" style="width: ${progress}%"></div>
-                            </div>
-                        </td>
-                        <td class="px-8 py-6 text-center">
-                            <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400 mx-auto"></i>
-                        </td>
-                    </tr>`;
-                table.insertAdjacentHTML('beforeend', tr);
-            });
-
-            document.getElementById('total-val').innerText = formatVN(totalVốn);
-            document.getElementById('final-interest').innerText = formatVN(finalLãi);
-            document.getElementById('row-count').innerText = activeCount;
-
-            // Risk Analysis
-            const topBank = Object.entries(bankDist).sort((a,b) => b[1]-a[1])[0];
-            const riskRatio = topBank[1] / totalVốn;
-            const riskEl = document.getElementById('risk-status');
-            if(riskRatio > 0.6) {
-                riskEl.innerHTML = `<span class="text-red-500">Rủi ro cao (Tập trung tại ${topBank[0]})</span>`;
-            } else {
-                riskEl.innerHTML = `<span class="text-emerald-500">An toàn (Danh mục đa dạng)</span>`;
+            // Initialize cashflow for next 12 months
+            for (let i = 0; i < 12; i++) {
+                const date = addMonths(now, i);
+                const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
+                interestCashflow[monthYear] = 0;
             }
 
-            renderCharts(bankDist, monthlyFlow);
+            data.forEach(row => {
+                const principal = parseFloat(row['Số tiền gửi']);
+                const rate = parseFloat(row['Lãi suất'].replace('%', '')) / 100;
+                const termMonths = parseInt(row['Kỳ hạn (tháng)']);
+                const startDate = parseDate(row['Ngày gửi']);
+                const maturityDate = addMonths(startDate, termMonths);
+
+                const interestPerTerm = principal * rate * (termMonths / 12);
+                
+                totalPrincipal += principal;
+                totalFinalInterest += interestPerTerm;
+                weightedAvgRate += (principal * rate);
+
+                // Check upcoming maturities
+                const daysToMaturity = Math.ceil((maturityDate - now) / (1000 * 60 * 60 * 24));
+                if (daysToMaturity > 0 && daysToMaturity <= 30) {
+                    upcomingMaturities++;
+                }
+
+                // Bank Distribution
+                bankDistribution[row['Ngân hàng']] = (bankDistribution[row['Ngân hàng']] || 0) + principal;
+
+                // Interest Cashflow for next 12 months (only if maturity is within this range)
+                const maturityMonthYear = `${maturityDate.getMonth() + 1}/${maturityDate.getFullYear()}`;
+                if (interestCashflow.hasOwnProperty(maturityMonthYear)) {
+                    interestCashflow[maturityMonthYear] += interestPerTerm;
+                }
+
+                // Render Card for each saving account
+                const progressDays = Math.max(0, Math.min(daysToMaturity, termMonths * 30.4375)); // Approx days in month
+                const totalTermDays = (termMonths / 12) * 365;
+                const percentageCompleted = (totalTermDays > 0) ? Math.max(0, Math.min(100, ((totalTermDays - daysToMaturity) / totalTermDays) * 100)) : 0;
+
+                let statusText = '';
+                let statusColor = 'text-slate-500';
+                if (daysToMaturity <= 0) {
+                    statusText = 'Đã đáo hạn';
+                    statusColor = 'text-red-500 font-bold';
+                } else if (daysToMaturity <= 30) {
+                    statusText = `Còn ${daysToMaturity} ngày`;
+                    statusColor = 'text-orange-500 font-bold animate-pulse';
+                } else if (daysToMaturity > 30) {
+                    const monthsLeft = Math.floor(daysToMaturity / 30.4375);
+                    const remainingDays = Math.ceil(daysToMaturity % 30.4375);
+                    statusText = `Còn ${monthsLeft} tháng ${remainingDays} ngày`;
+                    statusColor = 'text-emerald-600';
+                }
+
+                const cardHtml = `
+                    <div class="neumorphic p-6 rounded-3xl relative overflow-hidden h-56 flex flex-col justify-between">
+                        <div class="absolute right-[-10px] top-[-10px] opacity-[0.03] scale-125">
+                             <i data-lucide="banknote" class="w-32 h-32 text-emerald-900"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="font-bold text-lg text-emerald-900">${row['Tên tài khoản']}</div>
+                                <span class="bg-accent-green-light text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold">${row['Ngân hàng']}</span>
+                            </div>
+                            <h4 class="text-3xl font-extrabold text-emerald-600 val-blur">${formatVND(principal)}</h4>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between text-sm mb-2">
+                                <span class="text-slate-500">Lãi suất: <span class="font-semibold text-slate-700">${row['Lãi suất']}</span></span>
+                                <span class="${statusColor}">${statusText}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${percentageCompleted}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                cardsContainer.insertAdjacentHTML('beforeend', cardHtml);
+            });
+
+            // Update main stats
+            document.getElementById('total-principal').innerText = formatVND(totalPrincipal);
+            document.getElementById('final-interest').innerText = formatVND(totalFinalInterest);
+            document.getElementById('upcoming-count').innerText = upcomingMaturities + ' sổ';
+            document.getElementById('avg-rate').innerText = ((weightedAvgRate / totalPrincipal) * 100).toFixed(2) + '%';
+            document.getElementById('avg-daily-interest').innerText = formatVND(totalFinalInterest / 365);
+
+
+            // Risk Analysis
+            const topBank = Object.entries(bankDistribution).sort((a,b) => b[1]-a[1])[0];
+            const riskRatio = topBank && totalPrincipal > 0 ? (topBank[1] / totalPrincipal) : 0;
+            const portfolioRiskEl = document.getElementById('portfolio-risk');
+            if (riskRatio > CONFIG.RISK_THRESHOLD) {
+                portfolioRiskEl.innerHTML = `<span class="text-red-500">Rủi ro cao<br>(${topBank[0]} > ${Math.round(riskRatio * 100)}%)</span>`;
+            } else if (totalPrincipal === 0) {
+                 portfolioRiskEl.innerHTML = `<span class="text-slate-400">Chưa có dữ liệu</span>`;
+            }
+             else {
+                portfolioRiskEl.innerHTML = `<span class="text-emerald-600">Danh mục đa dạng<br>(An toàn)</span>`;
+            }
+
+            // Forecast for 2025 and 2026
+            const forecast2025 = calculateYearEndForecast(data, 2025, totalPrincipal);
+            const forecast2026 = calculateYearEndForecast(data, 2026, totalPrincipal);
+            document.getElementById('forecast-2025').innerText = formatVND(forecast2025);
+            document.getElementById('forecast-2026').innerText = formatVND(forecast2026);
+
+
+            renderCharts(bankDistribution, interestCashflow);
         }
 
-        function updateLiveInterest() {
-            let totalLive = 0;
-            const now = new Date();
-            globalData.forEach(row => {
-                if (row['Trạng thái'] !== 'Đang gửi') return;
-                const vốn = parseFloat(row['Số tiền gửi']);
-                const lãiSuất = parseFloat(row['Lãi suất'].replace('%', '')) / 100;
-                const ngàyGửi = strToDate(row['Ngày gửi']);
-                const diffTime = now - ngàyGửi;
-                if (diffTime > 0) {
-                    // Lãi phát sinh theo từng giây: Vốn * Lãi suất * (Số giây đã gửi / Tổng giây trong năm)
-                    totalLive += vốn * lãiSuất * (diffTime / (1000 * 60 * 60 * 24 * 365));
+        // Calculate forecast for specific year
+        function calculateYearEndForecast(data, targetYear, initialPrincipal) {
+            let total = initialPrincipal;
+            data.forEach(row => {
+                const principal = parseFloat(row['Số tiền gửi']);
+                const rate = parseFloat(row['Lãi suất'].replace('%', '')) / 100;
+                const termMonths = parseInt(row['Kỳ hạn (tháng)']);
+                const startDate = parseDate(row['Ngày gửi']);
+                let maturityDate = addMonths(startDate, termMonths);
+
+                // Simple annual growth assumption: Reinvest all principal and interest
+                // This is a simplified model, actual compound interest calculation is more complex
+                if (maturityDate.getFullYear() <= targetYear) {
+                    const interest = principal * rate * (termMonths / 12);
+                    // Add back to total if it's the principal being managed
+                    // Simplified: just assuming interest contributes to the pool
                 }
             });
-            document.getElementById('live-interest').innerText = formatVN(totalLive);
+            // A more accurate forecast needs to track each principal with its maturity and assumed reinvestment rate
+            // For now, let's just make a simple projection based on average growth
+            const yearsToForecast = targetYear - new Date().getFullYear();
+            if (yearsToForecast < 0) return total;
+            
+            // Simplified growth rate based on average portfolio rate
+            const averagePortfolioRate = (parseFloat(document.getElementById('avg-rate').innerText.replace('%', '')) / 100) || 0.05; // Default 5%
+            return initialPrincipal * Math.pow((1 + averagePortfolioRate), yearsToForecast);
         }
 
-        function renderCharts(bankData, flowData) {
-            new Chart(document.getElementById('distChart'), {
+
+        function updateLiveInterest() {
+            let currentLiveInterest = 0;
+            const now = new Date();
+
+            allSavingsData.forEach(row => {
+                const principal = parseFloat(row['Số tiền gửi']);
+                const rate = parseFloat(row['Lãi suất'].replace('%', '')) / 100;
+                const startDate = parseDate(row['Ngày gửi']);
+
+                const timeSinceStartMs = now - startDate;
+                if (timeSinceStartMs > 0) {
+                    // Calculate interest accrued per second: Principal * Annual Rate * (Seconds passed / Seconds in a year)
+                    const secondsInYear = 365 * 24 * 60 * 60;
+                    currentLiveInterest += principal * rate * (timeSinceStartMs / (secondsInYear * 1000));
+                }
+            });
+            document.getElementById('live-interest').innerText = formatVND(currentLiveInterest);
+        }
+
+        let bankChartInstance, cashflowChartInstance; // Store chart instances to destroy/update
+
+        function renderCharts(bankData, cashflowData) {
+            const chartColors = ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#3b82f6', '#06b6d4'];
+
+            // Destroy existing charts if they exist
+            if (bankChartInstance) bankChartInstance.destroy();
+            if (cashflowChartInstance) cashflowChartInstance.destroy();
+
+            // Bank Distribution Chart
+            bankChartInstance = new Chart(document.getElementById('bankDistChart'), {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(bankData),
                     datasets: [{
                         data: Object.values(bankData),
-                        backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
-                        borderWidth: 0,
-                        hoverOffset: 20
+                        backgroundColor: chartColors,
+                        borderColor: '#f7fcf9', // Background color to make slices distinct
+                        borderWidth: 2,
+                        hoverOffset: 15
                     }]
                 },
                 options: { 
-                    cutout: '75%', 
-                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { weight: 'bold', size: 11 } } } } 
+                    cutout: '70%', 
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                usePointStyle: true, 
+                                font: { weight: '600', size: 12 }, 
+                                color: '#4b5563', 
+                                padding: 25 
+                            } 
+                        } 
+                    } 
                 }
             });
 
-            new Chart(document.getElementById('cashflowChart'), {
+            // Interest Cashflow Chart
+            cashflowChartInstance = new Chart(document.getElementById('interestCashflowChart'), {
                 type: 'bar',
                 data: {
-                    labels: Object.keys(flowData),
+                    labels: Object.keys(cashflowData),
                     datasets: [{
-                        label: 'Gốc + Lãi nhận về',
-                        data: Object.values(flowData),
-                        backgroundColor: '#6366f1',
-                        borderRadius: 12,
-                        barThickness: 30
+                        label: 'Lãi nhận về',
+                        data: Object.values(cashflowData),
+                        backgroundColor: '#34d399', // Emerald green for interest
+                        borderRadius: 8,
+                        barThickness: 20
                     }]
                 },
                 options: {
                     plugins: { legend: { display: false } },
                     scales: { 
-                        y: { grid: { display: false }, ticks: { display: false }, border: { display: false } },
-                        x: { grid: { display: false }, border: { display: false }, ticks: { font: { weight: 'bold' } } }
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { display: false }, 
+                            ticks: { 
+                                callback: function(value) { return value / 1000000 + ' Tr'; }, // Format to Tr VND
+                                color: '#6b7280', font: { size: 11 } 
+                            }, 
+                            border: { display: false } 
+                        },
+                        x: { 
+                            grid: { display: false }, 
+                            border: { display: false }, 
+                            ticks: { 
+                                color: '#6b7280', font: { weight: '600', size: 11 } 
+                            } 
+                        }
                     }
                 }
             });
@@ -308,3 +465,4 @@
     </script>
 </body>
 </html>
+
