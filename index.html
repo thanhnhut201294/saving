@@ -3,36 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WealthFlow | Nhut Pro Dashboard</title>
+    <title>WealthFlow Pro | Nhut Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .compact-card { background: white; border-radius: 16px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .compact-card { background: white; border-radius: 16px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .val-blur { filter: blur(6px); transition: 0.3s; }
         .val-blur.show { filter: blur(0); }
-        .scroll-list { max-height: 380px; overflow-y: auto; }
+        .scroll-list { max-height: 400px; overflow-y: auto; }
         .progress-bar { height: 4px; border-radius: 2px; background: #f1f5f9; overflow: hidden; }
     </style>
 </head>
-<body class="p-4 md:p-6 bg-slate-50">
+<body class="p-3 md:p-6">
 
     <div id="auth-layer" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900">
         <div class="bg-white p-8 rounded-3xl w-full max-w-sm text-center mx-4">
-            <h1 class="text-xl font-bold mb-6 text-slate-800 uppercase tracking-tighter">Mã bảo mật</h1>
-            <input type="password" id="entry-pass" class="w-full px-4 py-3 rounded-xl border-2 mb-6 text-center text-2xl outline-none" placeholder="••••••">
-            <button onclick="handleLogin()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition">Truy cập</button>
+            <h1 class="text-xl font-bold mb-6 italic text-emerald-600">WealthFlow Pro</h1>
+            <input type="password" id="entry-pass" class="w-full px-4 py-3 rounded-xl border-2 mb-6 text-center text-2xl outline-none focus:border-emerald-500" placeholder="••••••">
+            <button onclick="handleLogin()" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition">Mở khóa hệ thống</button>
         </div>
     </div>
 
-    <div id="dashboard" class="hidden max-w-5xl mx-auto space-y-4">
+    <div id="dashboard" class="hidden max-w-6xl mx-auto space-y-4">
         <header class="flex justify-between items-center">
             <div class="flex items-center gap-2">
-                <div class="bg-emerald-600 p-2 rounded-lg text-white shadow-lg"><i data-lucide="gem" class="w-5 h-5"></i></div>
-                <h1 class="font-bold text-lg text-slate-800 uppercase">WealthFlow</h1>
+                <div class="bg-emerald-600 p-2 rounded-lg text-white"><i data-lucide="gem" class="w-5 h-5"></i></div>
+                <h1 class="font-bold text-lg tracking-tight uppercase">WealthFlow</h1>
             </div>
             <div class="flex gap-2">
                 <button onclick="togglePrivacy()" class="p-2 bg-white rounded-lg shadow-sm border"><i data-lucide="eye" class="w-5 h-5"></i></button>
@@ -42,11 +42,11 @@
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div class="compact-card border-b-4 border-emerald-500">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">Vốn đang gửi</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase">Tổng vốn gửi</p>
                 <h2 id="total-p" class="text-lg font-bold val-blur">0đ</h2>
             </div>
             <div class="compact-card border-b-4 border-blue-500">
-                <p class="text-[10px] text-slate-400 font-bold uppercase italic flex items-center gap-1">Lãi thực tế <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span></p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase italic flex items-center gap-1">Lãi thực nhận <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span></p>
                 <h2 id="live-i" class="text-lg font-bold text-emerald-600 val-blur">0đ</h2>
             </div>
             <div class="compact-card border-b-4 border-indigo-500">
@@ -54,18 +54,25 @@
                 <h2 id="final-i" class="text-lg font-bold text-indigo-600 val-blur">0đ</h2>
             </div>
             <div class="compact-card border-b-4 border-orange-500">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">Đáo hạn sớm</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase">Cần lưu ý</p>
                 <h2 id="up-count" class="text-lg font-bold text-orange-600">0 sổ</h2>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="compact-card md:col-span-1 h-56">
-                <h3 class="text-xs font-bold mb-2">Tỷ lệ Ngân hàng</h3>
-                <canvas id="distChart"></canvas>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="compact-card lg:col-span-1 min-h-[300px] flex flex-col">
+                <h3 class="text-xs font-bold mb-4 uppercase text-slate-400">Phân bổ theo ngân hàng</h3>
+                <div class="relative flex-grow flex items-center justify-center">
+                    <canvas id="distChart"></canvas>
+                    <div class="absolute text-center">
+                        <p class="text-[9px] text-slate-400 font-bold uppercase">Tổng vốn</p>
+                        <p id="chart-center-val" class="text-xs font-bold val-blur">0đ</p>
+                    </div>
+                </div>
+                <div id="chart-legend" class="mt-4 grid grid-cols-2 gap-2 text-[10px] font-semibold"></div>
             </div>
-            <div class="compact-card md:col-span-2 h-56">
-                <h3 class="text-xs font-bold mb-2 uppercase text-slate-400">Dòng tiền lãi về theo tháng</h3>
+            <div class="compact-card lg:col-span-2 min-h-[300px]">
+                <h3 class="text-xs font-bold mb-4 uppercase text-slate-400">Dòng tiền đáo hạn (Gốc + Lãi)</h3>
                 <canvas id="cashflowChart"></canvas>
             </div>
         </div>
@@ -73,24 +80,24 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="space-y-3">
                 <div class="compact-card bg-emerald-50 border border-emerald-100">
-                    <h3 class="text-xs font-bold mb-2 flex items-center gap-2 text-emerald-800"><i data-lucide="trending-up" class="w-4 h-4"></i> Dự báo tài sản</h3>
-                    <div class="text-[11px] space-y-1">
-                        <div class="flex justify-between"><span>Cuối 2025:</span><b id="f-2025" class="val-blur">0đ</b></div>
-                        <div class="flex justify-between text-emerald-700"><span>Cuối 2026:</span><b id="f-2026" class="val-blur">0đ</b></div>
+                    <h3 class="text-xs font-bold mb-3 flex items-center gap-2 text-emerald-800 uppercase tracking-tight"><i data-lucide="trending-up" class="w-4 h-4"></i> Dự báo tài sản</h3>
+                    <div class="text-[11px] space-y-2">
+                        <div class="flex justify-between"><span>Cuối năm 2025:</span><b id="f-2025" class="val-blur">0đ</b></div>
+                        <div class="flex justify-between text-emerald-700 border-t border-emerald-100 pt-1"><span>Cuối năm 2026:</span><b id="f-2026" class="val-blur">0đ</b></div>
                     </div>
                 </div>
                 <div class="compact-card">
                     <p class="text-[10px] font-bold text-slate-400 uppercase">Hiệu suất</p>
-                    <div class="flex justify-between mt-1 items-end">
+                    <div class="flex justify-between mt-2 items-end">
                         <div><p class="text-[9px] text-slate-400">Lãi suất TB</p><b id="avg-r" class="text-sm">0%</b></div>
                         <div class="text-right"><p class="text-[9px] text-slate-400">Lãi/Ngày</p><b id="d-earn" class="text-emerald-600 val-blur text-sm">0đ</b></div>
                     </div>
                 </div>
             </div>
 
-            <div class="md:col-span-2 compact-card p-0 overflow-hidden">
-                <div class="p-3 border-b flex justify-between bg-slate-50/30 items-center">
-                    <h3 class="font-bold text-[10px] uppercase text-slate-500">Danh sách sổ đang gửi</h3>
+            <div class="md:col-span-2 compact-card p-0 overflow-hidden flex flex-col">
+                <div class="p-3 border-b flex justify-between bg-slate-50/50 items-center">
+                    <h3 class="font-bold text-[10px] uppercase text-slate-500">Sổ tiết kiệm (Ưu tiên sổ sắp đến hạn)</h3>
                     <span class="text-[9px] font-bold bg-white px-2 py-0.5 rounded border shadow-sm" id="r-count">0</span>
                 </div>
                 <div id="smart-list" class="scroll-list divide-y"></div>
@@ -108,7 +115,7 @@
                 document.getElementById('auth-layer').style.display = 'none';
                 document.getElementById('dashboard').classList.remove('hidden');
                 loadData();
-            } else { alert("Mã bảo mật không đúng!"); }
+            } else { alert("Mật mã không đúng!"); }
         }
 
         function togglePrivacy() {
@@ -116,23 +123,17 @@
             document.querySelectorAll('.val-blur').forEach(el => el.classList.toggle('show', !isPrivate));
         }
 
-        function formatVN(val) {
-            return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + 'đ';
-        }
-
-        // Parse ngày dd/mm/yyyy chuẩn 100%
+        function formatVN(val) { return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + 'đ'; }
+        
         function parseDate(s) {
             if(!s) return null;
             const parts = s.split('/');
-            if(parts.length < 3) return null;
-            return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            return new Date(parts[2], parts[1] - 1, parts[0]);
         }
 
-        // Làm sạch lãi suất
         function parseRate(s) {
             if(!s) return 0;
-            let clean = s.toString().replace('%', '').replace(',', '.').trim();
-            return parseFloat(clean) || 0;
+            return parseFloat(s.toString().replace('%', '').replace(',', '.').trim()) || 0;
         }
 
         async function loadData() {
@@ -140,7 +141,6 @@
             Papa.parse(CSV_LINK, {
                 download: true, header: true,
                 complete: (res) => {
-                    // LỌC CHÍNH XÁC: Chỉ lấy các sổ có trạng thái "Đang gửi"
                     globalData = res.data.filter(r => r['Trạng thái'] === 'Đang gửi' && r['Số tiền gửi']);
                     render();
                     setInterval(updateLive, 1000);
@@ -154,67 +154,67 @@
             const now = new Date();
             list.innerHTML = "";
 
-            globalData.forEach(r => {
+            // 1. Tính toán ngày đáo hạn và sắp xếp dữ liệu
+            const processedData = globalData.map(r => {
                 const v = parseFloat(r['Số tiền gửi'].replace(/[^0-9.]/g, '')) || 0;
                 const ls = parseRate(r['Lãi suất'])/100;
                 const kh = parseInt(r['Kỳ hạn']) || 0;
                 const ng = parseDate(r['Ngày gửi']);
-                
-                if(!ng) return;
                 const ndh = new Date(ng); ndh.setMonth(ndh.getMonth() + kh);
-
-                totalV += v;
-                const lai = v * ls * (kh/12);
-                finalL += lai;
-                rateSum += (ls * v);
-
                 const dLeft = Math.ceil((ndh - now)/86400000);
-                if(dLeft <= 30 && dLeft > 0) upc++;
+                return { ...r, v, ls, kh, ng, ndh, dLeft, laiFinal: v * ls * (kh/12) };
+            }).sort((a, b) => a.dLeft - b.dLeft); // Sắp xếp ngày đáo hạn gần nhất lên đầu
 
-                bankD[r['Ngân hàng']] = (bankD[r['Ngân hàng']] || 0) + v;
-                const mKey = `${ndh.getMonth()+1}/${ndh.getFullYear()}`;
-                flow[mKey] = (flow[mKey] || 0) + lai;
+            processedData.forEach(r => {
+                totalV += r.v;
+                finalL += r.laiFinal;
+                rateSum += (r.ls * r.v);
+                if(r.dLeft <= 30 && r.dLeft > 0) upc++;
 
-                const progress = Math.min(100, Math.max(0, ((now - ng) / (ndh - ng)) * 100));
+                bankD[r['Ngân hàng']] = (bankD[r['Ngân hàng']] || 0) + r.v;
+                const mKey = `${r.ndh.getMonth()+1}/${r.ndh.getFullYear()}`;
+                flow[mKey] = (flow[mKey] || 0) + (r.v + r.laiFinal);
+
+                const progress = Math.min(100, Math.max(0, ((now - r.ng) / (r.ndh - r.ng)) * 100));
+                
+                // Màu sắc cảnh báo dựa trên số ngày còn lại
+                let dayColor = "text-slate-500";
+                if(r.dLeft <= 7) dayColor = "text-red-500 font-bold animate-pulse";
+                else if(r.dLeft <= 30) dayColor = "text-orange-500 font-bold";
 
                 const item = `
-                    <div class="p-3 flex justify-between items-center text-[11px] hover:bg-slate-50 transition">
-                        <div class="w-1/3 text-left">
+                    <div class="p-3 flex justify-between items-center text-[11px] hover:bg-slate-50 transition border-l-4 ${r.dLeft <= 7 ? 'border-red-500' : (r.dLeft <= 30 ? 'border-orange-500' : 'border-emerald-500')}">
+                        <div class="w-1/3">
                             <div class="font-bold text-slate-700">${r['Tên tài khoản']}</div>
-                            <div class="text-[9px] text-slate-400 font-semibold">${r['Ngân hàng']}</div>
+                            <div class="text-[9px] text-slate-400 font-bold uppercase">${r['Ngân hàng']}</div>
                         </div>
                         <div class="w-1/3 text-center px-2">
-                            <div class="font-bold text-emerald-600 val-blur ${!isPrivate?'show':''}">${formatVN(v)}</div>
+                            <div class="font-bold text-emerald-600 val-blur ${!isPrivate?'show':''}">${formatVN(r.v)}</div>
                             <div class="progress-bar mt-1 mx-auto w-full"><div class="bg-emerald-500 h-full" style="width:${progress}%"></div></div>
                         </div>
                         <div class="w-1/3 text-right">
-                            <div class="font-bold ${dLeft <= 15 ? 'text-red-500 animate-pulse' : 'text-slate-500'}">${dLeft > 0 ? dLeft+' ngày' : 'Đến hạn'}</div>
-                            <div class="text-[9px] text-slate-300 font-mono">${ndh.toLocaleDateString('vi-VN')}</div>
+                            <div class="${dayColor}">${r.dLeft > 0 ? r.dLeft+' ngày' : 'Đến hạn'}</div>
+                            <div class="text-[9px] text-slate-300 font-mono italic">${r.ndh.toLocaleDateString('vi-VN')}</div>
                         </div>
                     </div>`;
                 list.insertAdjacentHTML('beforeend', item);
             });
 
             document.getElementById('total-p').innerText = formatVN(totalV);
+            document.getElementById('chart-center-val').innerText = formatVN(totalV);
             document.getElementById('final-i').innerText = formatVN(finalL);
             document.getElementById('up-count').innerText = upc + ' sổ';
-            document.getElementById('r-count').innerText = globalData.length;
+            document.getElementById('r-count').innerText = processedData.length;
             document.getElementById('avg-r').innerText = (totalV ? (rateSum/totalV*100).toFixed(2) : 0) + '%';
             document.getElementById('d-earn').innerText = formatVN(finalL/365);
             
-            // Dự báo chính xác theo từng sổ
+            // Dự báo nhanh
             let lai2025 = 0;
-            globalData.forEach(r => {
-                const kh = parseInt(r['Kỳ hạn']) || 0;
-                const ng = parseDate(r['Ngày gửi']);
-                if(!ng) return;
-                const ndh = new Date(ng); ndh.setMonth(ndh.getMonth() + kh);
-                if(ndh.getFullYear() === 2025) lai2025 += (parseFloat(r['Số tiền gửi'].replace(/[^0-9.]/g, '')) * parseRate(r['Lãi suất'])/100 * kh/12);
-            });
+            processedData.forEach(r => { if(r.ndh.getFullYear() === 2025) lai2025 += r.laiFinal; });
             document.getElementById('f-2025').innerText = formatVN(totalV + lai2025);
             document.getElementById('f-2026').innerText = formatVN(totalV + finalL);
 
-            renderCharts(bankD, flow);
+            renderCharts(bankD, flow, totalV);
         }
 
         function updateLive() {
@@ -230,17 +230,29 @@
             document.getElementById('live-i').innerText = formatVN(live);
         }
 
-        function renderCharts(bD, fD) {
-            new Chart(document.getElementById('distChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(bD),
-                    datasets: [{ data: Object.values(bD), backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6'], borderWidth: 0 }]
-                },
-                options: { cutout: '75%', maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        function renderCharts(bD, fD, total) {
+            const colors = ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+            
+            // 1. Donut Chart với Legend chi tiết
+            const legendContainer = document.getElementById('chart-legend');
+            legendContainer.innerHTML = "";
+            Object.keys(bD).forEach((bank, i) => {
+                const percent = ((bD[bank]/total)*100).toFixed(1);
+                legendContainer.innerHTML += `
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full" style="background:${colors[i%6]}"></span>
+                        <span class="truncate">${bank}: ${percent}%</span>
+                    </div>`;
             });
 
-            const sortedMonths = Object.keys(fD).sort((a,b) => {
+            new Chart(document.getElementById('distChart'), {
+                type: 'doughnut',
+                data: { labels: Object.keys(bD), datasets: [{ data: Object.values(bD), backgroundColor: colors, borderWidth: 0 }] },
+                options: { cutout: '78%', maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            // 2. Stacked Bar Chart (Vốn + Lãi)
+            const sortedFlow = Object.keys(fD).sort((a,b) => {
                 const [m1, y1] = a.split('/'), [m2, y2] = b.split('/');
                 return new Date(y1, m1-1) - new Date(y2, m2-1);
             });
@@ -248,10 +260,17 @@
             new Chart(document.getElementById('cashflowChart'), {
                 type: 'bar',
                 data: {
-                    labels: sortedMonths,
-                    datasets: [{ label: 'Lãi nhận về', data: sortedMonths.map(k => fD[k]), backgroundColor: '#6366f1', borderRadius: 4 }]
+                    labels: sortedFlow,
+                    datasets: [{ label: 'Vốn + Lãi', data: sortedFlow.map(k => fD[k]), backgroundColor: '#6366f1', borderRadius: 6 }]
                 },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { font: { size: 8 } } } } }
+                options: { 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        y: { display: true, grid: { display: false }, ticks: { font: { size: 8 }, callback: (v) => v/1000000 + 'M' } }, 
+                        x: { grid: { display: false }, ticks: { font: { size: 8 } } } 
+                    } 
+                }
             });
         }
     </script>
